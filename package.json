@@ -1,0 +1,20 @@
+{
+  "name": "tairawhiti-invest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tairāwhiti Invest — a persistent personal investment research system. Deterministic engine + tests; the app ships as a claude.ai Artifact.",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:artifact": "node scripts/build-artifact.mjs",
+    "smoke": "node scripts/build-artifact.mjs && node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "htm": "^3.1.1",
+    "playwright-core": "^1.47.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vitest": "^2.1.9"
+  }
+}
