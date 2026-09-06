@@ -1,0 +1,2340 @@
+<title>Tairāwhiti Invest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* ===========================================================================
+   Tairāwhiti Invest — restrained te-ao-inspired research system.
+   Palette: deep ocean / pounamu, warm paper & sand neutrals, kōwhai caution,
+   clay risk. Type: Spectral (serif display) · IBM Plex Sans (UI) · Plex Mono (data).
+   Semantic colour is separate from the pounamu accent. Status = text+shape+contrast.
+   =========================================================================== */
+:root{
+  --paper:#ECE5D8; --surface:#F6F1E7; --surface-2:#EDE6D8; --raise:#FBF8F1;
+  --ink:#1B2826; --ink-2:#3C4B47; --muted:#6E7B75; --hair:#D8CEBC; --hair-2:#C7BCA6;
+  --ocean:#0E4D52; --ocean-2:#12656B; --pounamu:#2C7A67; --pounamu-2:#3C9079;
+  --kowhai:#C98A12; --kowhai-tint:#F3E4C2; --clay:#A83B27; --clay-tint:#F0D8CE;
+  --good:#2C7A67; --good-tint:#D6E7DF; --warn:#C98A12; --warn-tint:#F3E4C2;
+  --bad:#A83B27; --bad-tint:#F0D8CE; --neutral:#6E7B75; --neutral-tint:#E3DCCC;
+  --accent:var(--ocean); --link:#12656B;
+  --shadow:0 1px 2px rgba(27,40,38,.06),0 6px 20px rgba(27,40,38,.07);
+  --radius:14px; --radius-sm:9px;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+:root:not([data-theme="light"]){ }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0C1413; --surface:#111C1A; --surface-2:#152220; --raise:#182826;
+    --ink:#E9E3D5; --ink-2:#C3C9C2; --muted:#8B978F; --hair:#243430; --hair-2:#2E403B;
+    --ocean:#3FA890; --ocean-2:#4FB89F; --pounamu:#3FA890; --pounamu-2:#57C0A6;
+    --kowhai:#E4B457; --kowhai-tint:#3A2F17; --clay:#D5765C; --clay-tint:#3A211A;
+    --good:#4FB89F; --good-tint:#183028; --warn:#E4B457; --warn-tint:#3A2F17;
+    --bad:#D5765C; --bad-tint:#3A211A; --neutral:#8B978F; --neutral-tint:#20302C;
+    --accent:var(--ocean); --link:#57C0A6;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0C1413; --surface:#111C1A; --surface-2:#152220; --raise:#182826;
+  --ink:#E9E3D5; --ink-2:#C3C9C2; --muted:#8B978F; --hair:#243430; --hair-2:#2E403B;
+  --ocean:#3FA890; --ocean-2:#4FB89F; --pounamu:#3FA890; --pounamu-2:#57C0A6;
+  --kowhai:#E4B457; --kowhai-tint:#3A2F17; --clay:#D5765C; --clay-tint:#3A211A;
+  --good:#4FB89F; --good-tint:#183028; --warn:#E4B457; --warn-tint:#3A2F17;
+  --bad:#D5765C; --bad-tint:#3A211A; --neutral:#8B978F; --neutral-tint:#20302C;
+  --accent:var(--ocean); --link:#57C0A6;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 26px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4{font-family:var(--serif);font-weight:600;text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:1.7rem} h2{font-size:1.28rem} h3{font-size:1.06rem}
+a{color:var(--link);text-decoration:none} a:hover{text-decoration:underline}
+button{font-family:inherit}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.eyebrow{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.reo{font-family:var(--serif);font-style:italic;color:var(--pounamu)}
+:focus-visible{outline:2.5px solid var(--ocean-2);outline-offset:2px;border-radius:6px}
+
+/* ---- shell / layout ---- */
+.app{min-height:100vh;display:flex;flex-direction:column}
+.rail{display:none}
+.main{flex:1;width:100%;max-width:1120px;margin:0 auto;padding:18px 16px 96px}
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 88%,transparent);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--hair);padding:10px 16px;
+  display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:baseline;gap:8px}
+.brand .k{width:22px;height:22px;flex:none;align-self:center}
+.brand b{font-family:var(--serif);font-size:1.06rem;letter-spacing:.01em}
+.brand small{color:var(--muted);font-size:.72rem}
+.topbar .sp{flex:1}
+.iconbtn{background:transparent;border:1px solid var(--hair-2);color:var(--ink-2);
+  border-radius:9px;padding:7px 10px;cursor:pointer;font-size:.82rem;display:inline-flex;gap:6px;align-items:center}
+.iconbtn:hover{background:var(--surface-2)}
+
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;
+  grid-template-columns:repeat(5,1fr);background:var(--surface);border-top:1px solid var(--hair);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+.tabbar a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px;
+  color:var(--muted);font-size:.62rem;font-weight:600;border-radius:8px;text-transform:uppercase;letter-spacing:.04em}
+.tabbar a.on{color:var(--ocean)} .tabbar a.on svg{color:var(--ocean)}
+.tabbar svg{width:21px;height:21px}
+.more-sheet{position:fixed;inset:0;z-index:40;background:rgba(10,16,15,.35);display:flex;align-items:flex-end}
+.more-sheet .card{width:100%;border-radius:16px 16px 0 0;padding:12px 14px 26px}
+.more-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.more-grid a{padding:12px;border:1px solid var(--hair);border-radius:11px;color:var(--ink);
+  display:flex;gap:9px;align-items:center;background:var(--raise)}
+
+@media(min-width:900px){
+  .app{flex-direction:row}
+  .rail{display:flex;flex-direction:column;width:230px;flex:none;position:sticky;top:0;height:100vh;
+    border-right:1px solid var(--hair);background:var(--surface);padding:16px 12px;gap:2px;overflow:auto}
+  .rail .brand{padding:6px 8px 14px}
+  .rail a.nav{display:flex;gap:11px;align-items:center;padding:9px 11px;border-radius:10px;
+    color:var(--ink-2);font-weight:500;font-size:.9rem}
+  .rail a.nav svg{width:19px;height:19px;color:var(--muted)}
+  .rail a.nav:hover{background:var(--surface-2);text-decoration:none}
+  .rail a.nav.on{background:var(--good-tint);color:var(--ocean)} .rail a.nav.on svg{color:var(--ocean)}
+  .rail .grp{margin-top:12px;padding:4px 11px}
+  .tabbar,.topbar{display:none}
+  .main{padding:26px 30px 40px;max-width:none}
+  .main.wrap{max-width:1080px}
+}
+
+/* ---- primitives ---- */
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);box-shadow:var(--shadow)}
+.pad{padding:16px} .pad-sm{padding:12px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;gap:10px;align-items:center}
+.wrap-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;gap:14px}
+.between{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.muted{color:var(--muted)} .ink2{color:var(--ink-2)}
+.small{font-size:.82rem} .xs{font-size:.72rem}
+.hr{height:1px;background:var(--hair);border:0;margin:12px 0}
+.spacer{flex:1}
+.pagehead{display:flex;flex-direction:column;gap:3px;margin-bottom:16px}
+.pagehead .t{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+
+.btn{background:var(--ocean);color:#fff;border:1px solid transparent;border-radius:10px;
+  padding:9px 15px;font-weight:600;font-size:.88rem;cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+.btn:hover{background:var(--ocean-2)} .btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--hair-2)}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.sm{padding:6px 11px;font-size:.8rem;border-radius:9px}
+.btn.danger{background:transparent;color:var(--bad);border-color:var(--bad)}
+.btn.warn{background:var(--kowhai);color:#221a06}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;
+  font-size:.72rem;font-weight:600;border:1px solid var(--hair-2);background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.chip .dot{width:7px;height:7px;border-radius:2px;flex:none} /* square-ish: shape carries meaning too */
+.chip.good{background:var(--good-tint);border-color:transparent;color:var(--good)} .chip.good .dot{background:var(--good);border-radius:2px}
+.chip.warn{background:var(--warn-tint);border-color:transparent;color:var(--kowhai)} .chip.warn .dot{background:var(--kowhai);border-radius:50%}
+.chip.bad{background:var(--bad-tint);border-color:transparent;color:var(--bad)} .chip.bad .dot{background:var(--bad);transform:rotate(45deg)}
+.chip.neutral{background:var(--neutral-tint);color:var(--ink-2)} .chip.neutral .dot{background:var(--neutral)}
+.chip.unknown{background:transparent;border-style:dashed;color:var(--muted)} .chip.unknown .dot{background:transparent;border:1.5px solid var(--muted);border-radius:50%}
+.chip.solid{background:var(--ocean);color:#fff;border-color:transparent}
+
+.tag{font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--hair)}
+.kv:last-child{border-bottom:0}
+.kv .k{color:var(--muted);font-size:.84rem} .kv .v{font-weight:600;text-align:right}
+
+table.tbl{width:100%;border-collapse:collapse;font-size:.86rem}
+table.tbl th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);font-weight:700;padding:9px 10px;border-bottom:1px solid var(--hair-2);position:sticky;top:0;background:var(--surface)}
+table.tbl td{padding:10px;border-bottom:1px solid var(--hair)}
+table.tbl tr:hover td{background:var(--surface-2)}
+.scroll-x{overflow-x:auto}
+
+label.f{display:flex;flex-direction:column;gap:5px;font-size:.8rem;color:var(--ink-2);font-weight:600}
+label.f input,label.f select,label.f textarea{font-family:inherit;font-size:.9rem;padding:9px 10px;
+  border:1px solid var(--hair-2);border-radius:9px;background:var(--raise);color:var(--ink);width:100%}
+label.f textarea{min-height:70px;resize:vertical;line-height:1.45}
+.form-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+
+.modal-bg{position:fixed;inset:0;z-index:50;background:rgba(8,14,13,.45);display:flex;
+  align-items:flex-start;justify-content:center;padding:16px;overflow:auto}
+.modal{background:var(--surface);border:1px solid var(--hair);border-radius:16px;
+  width:100%;max-width:720px;margin:24px auto;box-shadow:var(--shadow)}
+.modal .mh{padding:14px 18px;border-bottom:1px solid var(--hair);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);border-radius:16px 16px 0 0;z-index:2}
+.modal .mb{padding:18px}
+
+.decision-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dcell{border:1px solid var(--hair);border-radius:12px;padding:12px;background:var(--raise);min-width:0}
+.dcell .lab{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:.66rem;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+.dcell .big{font-family:var(--serif);font-size:1.18rem;margin-top:6px;line-height:1.1}
+.dcell .sub{font-size:.76rem;color:var(--ink-2);margin-top:3px}
+
+.dim{border:1px solid var(--hair);border-radius:11px;overflow:hidden}
+.dim > .hd{display:flex;align-items:center;gap:10px;padding:11px 13px;cursor:pointer;background:var(--raise)}
+.dim > .hd:hover{background:var(--surface-2)}
+.dim .bd{padding:0 13px 13px;font-size:.88rem;color:var(--ink-2)}
+.score-pill{font-family:var(--mono);font-weight:600;font-size:.8rem;padding:2px 8px;border-radius:7px;background:var(--surface-2);border:1px solid var(--hair-2)}
+.delta-up{color:var(--good);font-weight:600} .delta-dn{color:var(--bad);font-weight:600}
+
+.zone{display:grid;grid-template-columns:auto 1fr 1fr;gap:4px;font-size:.74rem;max-width:420px}
+.zone .cell{padding:9px;border-radius:8px;text-align:center;font-weight:600;border:1px solid var(--hair)}
+.zone .cell.on{outline:2.5px solid var(--ocean);background:var(--good-tint)}
+.zone .axl{display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700;font-size:.64rem;text-transform:uppercase;letter-spacing:.05em}
+
+.banner{border-radius:11px;padding:11px 13px;font-size:.85rem;border:1px solid var(--hair-2);background:var(--surface-2)}
+.banner.warn{background:var(--warn-tint);border-color:transparent;color:#7a5a10}
+.banner.bad{background:var(--bad-tint);border-color:transparent}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .banner.warn{color:var(--kowhai)}}
+:root[data-theme="dark"] .banner.warn{color:var(--kowhai)}
+
+.empty{text-align:center;padding:34px 18px;color:var(--muted)}
+.empty h3{color:var(--ink);margin-bottom:6px}
+.kbadge{font-size:.6rem;background:var(--kowhai-tint);color:#6a4d08;border-radius:6px;padding:2px 6px;font-weight:700;letter-spacing:.03em}
+:root[data-theme="dark"] .kbadge, :root:not([data-theme="light"]) .kbadge{color:var(--kowhai)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .kbadge{color:var(--kowhai)}}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:60;background:var(--ink);
+  color:var(--paper);padding:10px 16px;border-radius:10px;font-size:.85rem;box-shadow:var(--shadow);max-width:90vw}
+@media(min-width:900px){.toast{bottom:24px}}
+.skel{background:linear-gradient(90deg,var(--surface-2),var(--hair),var(--surface-2));
+  background-size:200% 100%;animation:sh 1.3s infinite;border-radius:8px}
+@keyframes sh{to{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.link-btn{background:none;border:0;color:var(--link);cursor:pointer;padding:0;font:inherit}
+.ic{width:18px;height:18px;flex:none;vertical-align:middle}
+.btn .ic{width:16px;height:16px}
+.link-btn.row .ic{width:15px;height:15px}
+.aibox{border:1px dashed var(--pounamu-2);border-radius:11px;padding:12px;background:color-mix(in srgb,var(--good-tint) 55%,transparent)}
+.pill-row{display:flex;gap:6px;flex-wrap:wrap}
+progress{width:100%;height:8px}
+</style>
+
+<div id="root">
+  <div style="min-height:60vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;color:#6E7B75;font-family:'IBM Plex Sans',sans-serif">
+    <div style="font-family:Spectral,serif;font-size:1.3rem;color:#0E4D52">Tairāwhiti Invest</div>
+    <div style="font-size:.85rem">Loading your research memory…</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/htm/3.1.1/htm.umd.js"></script>
+
+<script>
+// ==== engine/engine.js (inlined verbatim by build-artifact.mjs) ====
+/*
+ * Tairāwhiti Invest — deterministic engine
+ * ----------------------------------------
+ * Pure, side-effect-free functions that implement every calculable rule in the
+ * build spec (§3, §6, §7, §9, §11, §12, §13, §20, §25, §26, §34). AI never
+ * produces these numbers — deterministic code does. This single UMD file is the
+ * authoritative source: it is `require`d by the Vitest suite AND pasted verbatim
+ * into artifact/app.html so the live app and the tests share one implementation.
+ *
+ * Design rules honoured here:
+ *   - Missing data is a first-class state (null / UNKNOWN), never fabricated (§38.2).
+ *   - Quality and entry are computed and reported separately (§4, §38.3).
+ *   - A failed hard gate is never rescued by cheap price or good context (§38.4).
+ *   - Framework rules are data (weights/gates passed in), never hard-coded totals (§3).
+ */
+(function (root, factory) {
+  if (typeof module !== "undefined" && module.exports) module.exports = factory();
+  else root.Engine = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  // ---------------------------------------------------------------------------
+  // Small helpers
+  // ---------------------------------------------------------------------------
+  var UNKNOWN = "UNKNOWN";
+
+  function isNum(x) {
+    return typeof x === "number" && isFinite(x);
+  }
+  function round(x, dp) {
+    if (!isNum(x)) return null;
+    var f = Math.pow(10, dp == null ? 2 : dp);
+    return Math.round(x * f) / f;
+  }
+  function clamp(x, lo, hi) {
+    return Math.max(lo, Math.min(hi, x));
+  }
+
+  // ---------------------------------------------------------------------------
+  // §3.1 Profile A — Core 40-point scorecard
+  // Eight categories each scored 1–5. Total 8–40. Bands per spec.
+  // ---------------------------------------------------------------------------
+  var CORE_CATEGORIES = [
+    "quality",
+    "valuation",
+    "trading_liquidity",
+    "underlying_liquidity",
+    "capital_flows",
+    "macro_liquidity",
+    "trend_momentum",
+    "risk_control",
+  ];
+
+  // Returns { total, band, interpretation, missing:[] }.
+  // Missing categories are not scored as 0 — they are reported so the user knows
+  // the total is partial rather than a real 40-point assessment.
+  function coreScorecardTotal(scores) {
+    scores = scores || {};
+    var total = 0;
+    var missing = [];
+    for (var i = 0; i < CORE_CATEGORIES.length; i++) {
+      var k = CORE_CATEGORIES[i];
+      var v = scores[k];
+      if (isNum(v)) total += v;
+      else missing.push(k);
+    }
+    return {
+      total: total,
+      complete: missing.length === 0,
+      missing: missing,
+      band: coreScorecardBand(total),
+    };
+  }
+
+  function coreScorecardBand(total) {
+    if (!isNum(total)) return UNKNOWN;
+    if (total >= 32) return "STRONG_CANDIDATE";
+    if (total >= 26) return "WATCHLIST_OR_STAGED";
+    if (total >= 20) return "NEEDS_STRONGER_EVIDENCE";
+    return "AVOID_OR_KEEP_SMALL";
+  }
+
+  var CORE_BAND_LABELS = {
+    STRONG_CANDIDATE: "Strong candidate (32–40)",
+    WATCHLIST_OR_STAGED: "Watchlist or staged entry (26–31)",
+    NEEDS_STRONGER_EVIDENCE: "Needs stronger evidence (20–25)",
+    AVOID_OR_KEEP_SMALL: "Avoid or keep very small (<20)",
+    UNKNOWN: "Unknown",
+  };
+
+  // §3.1 hard rule: liquidity risk regardless of total score.
+  // A high score cannot hide a fragile liquidity profile.
+  function liquidityHardFlag(scores) {
+    scores = scores || {};
+    var t = scores.trading_liquidity;
+    var u = scores.underlying_liquidity;
+    var flagged = (isNum(t) && t < 2) || (isNum(u) && u < 2);
+    return {
+      flag: flagged ? "HIGH_LIQUIDITY_RISK" : null,
+      trading_liquidity: isNum(t) ? t : null,
+      underlying_liquidity: isNum(u) ? u : null,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // §3.1 Profile B — weighted quality/entry overlay.
+  // Weights live in the framework version (data, not code). Given per-dimension
+  // scores on a 0–5 scale and weights, produce a normalised 0–100 quality score.
+  // Dimensions with unknown scores are excluded and the weight base shrinks, so a
+  // partial assessment is reported honestly rather than counting missing as zero.
+  // ---------------------------------------------------------------------------
+  function weightedScore(dimensionScores, weights, maxPerDimension) {
+    dimensionScores = dimensionScores || {};
+    weights = weights || {};
+    var max = maxPerDimension || 5;
+    var num = 0;
+    var wBase = 0;
+    var used = [];
+    var missing = [];
+    Object.keys(weights).forEach(function (dim) {
+      var w = weights[dim];
+      if (!isNum(w) || w <= 0) return;
+      var s = dimensionScores[dim];
+      if (isNum(s)) {
+        num += (s / max) * w;
+        wBase += w;
+        used.push(dim);
+      } else {
+        missing.push(dim);
+      }
+    });
+    if (wBase === 0) return { score: null, complete: false, used: used, missing: missing };
+    return {
+      score: round((num / wBase) * 100, 1),
+      complete: missing.length === 0,
+      used: used,
+      missing: missing,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // §26 Hard gates. A single FAIL dominates; REVIEW downgrades; UNKNOWN is not a
+  // pass. Deployable only when nothing fails and nothing is unresolved.
+  // gates: [{name, status}] status in PASS|REVIEW|FAIL|NOT_APPLICABLE|UNKNOWN
+  // ---------------------------------------------------------------------------
+  var GATE_STATUSES = ["PASS", "REVIEW", "FAIL", "NOT_APPLICABLE", "UNKNOWN"];
+
+  function hardGateStatus(gates) {
+    gates = gates || [];
+    var anyFail = false,
+      anyReview = false,
+      anyUnknown = false,
+      counted = 0;
+    gates.forEach(function (g) {
+      if (!g || g.status === "NOT_APPLICABLE") return;
+      counted++;
+      if (g.status === "FAIL") anyFail = true;
+      else if (g.status === "REVIEW") anyReview = true;
+      else if (g.status === "UNKNOWN" || !g.status) anyUnknown = true;
+    });
+    var overall;
+    if (anyFail) overall = "FAIL";
+    else if (anyReview) overall = "REVIEW";
+    else if (anyUnknown) overall = "UNKNOWN";
+    else if (counted === 0) overall = "UNKNOWN";
+    else overall = "PASS";
+    return { overall: overall, deployable: overall === "PASS", counted: counted };
+  }
+
+  // ---------------------------------------------------------------------------
+  // §6.4 Market context six-signal timing score. Count FAVOURABLE only.
+  // signals: array of 6 values FAVOURABLE|MIXED|UNFAVOURABLE|UNKNOWN
+  // ---------------------------------------------------------------------------
+  var SIGNAL_VALUES = ["FAVOURABLE", "MIXED", "UNFAVOURABLE", "UNKNOWN"];
+
+  function sixSignalScore(signals) {
+    signals = signals || [];
+    var favourable = 0,
+      known = 0;
+    signals.forEach(function (s) {
+      if (s === "FAVOURABLE") favourable++;
+      if (s && s !== "UNKNOWN") known++;
+    });
+    return {
+      favourable: favourable,
+      known: known,
+      total: signals.length,
+      timing: timingBand(favourable),
+    };
+  }
+
+  function timingBand(favourable) {
+    if (favourable >= 4) return "STRONG_TIMING";
+    if (favourable >= 2) return "ACCEPTABLE_CONSERVATIVE_SIZE";
+    return "WATCH_WAIT";
+  }
+
+  // §6 integration rules: combine business quality (pass/fail-ish) with market
+  // context. Market context can improve entry but never rescue a broken business.
+  // qualityOk: boolean (hard gates + quality acceptable). favourableSignals: int.
+  function marketContextIntegration(qualityOk, favourableSignals) {
+    if (!qualityOk) {
+      return favourableSignals >= 2
+        ? "VALUE_TRAP_OR_TRADING_ONLY"
+        : "AVOID";
+    }
+    if (favourableSignals >= 2) return "STRONGER_ENTRY_CANDIDATE";
+    return "WATCHLIST_NOT_CHASE";
+  }
+
+  // ---------------------------------------------------------------------------
+  // §7 Decision zone (two-axis quality × flows).
+  // quality: HIGH|LOW. flows: IMPROVING|DETERIORATING
+  // ---------------------------------------------------------------------------
+  function decisionZone(quality, flows) {
+    var hi = quality === "HIGH";
+    var improving = flows === "IMPROVING";
+    if (hi && improving) return "BEST";
+    if (hi && !improving) return "PATIENCE";
+    if (!hi && improving) return "TRADING_ONLY";
+    return "AVOID";
+  }
+
+  // Map a 0–100 quality score to HIGH/LOW using a configurable threshold.
+  function qualityAxis(score, threshold) {
+    if (!isNum(score)) return UNKNOWN;
+    return score >= (isNum(threshold) ? threshold : 60) ? "HIGH" : "LOW";
+  }
+
+  // Map a flow-condition enum (§7 uses improving/deteriorating axis).
+  function flowAxis(flowCondition) {
+    switch (flowCondition) {
+      case "EARLY_POSITIVE_TURN":
+      case "STRONG_POSITIVE":
+      case "NEGATIVE_STABILISING":
+        return "IMPROVING";
+      case "NEGATIVE_WORSENING":
+        return "DETERIORATING";
+      default:
+        return "DETERIORATING"; // NEUTRAL treated as not-improving for a cautious default
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // §9 Entry bands — membership and crossing detection.
+  // A band: { name, lower_bound|null, upper_bound|null, stance }.
+  // Convention: a price belongs to a band when lower < price <= upper.
+  // lower null = -Infinity, upper null = +Infinity. Bands should be contiguous
+  // and ordered; membership returns the FIRST matching band.
+  // ---------------------------------------------------------------------------
+  function bandContains(band, price) {
+    if (!band || !isNum(price)) return false;
+    var lo = isNum(band.lower_bound) ? band.lower_bound : -Infinity;
+    var hi = isNum(band.upper_bound) ? band.upper_bound : Infinity;
+    // lower-exclusive, upper-inclusive; but an open-topped band is inclusive at hi=+Inf
+    return price > lo && price <= hi;
+  }
+
+  function findBand(bands, price) {
+    bands = bands || [];
+    for (var i = 0; i < bands.length; i++) {
+      if (bandContains(bands[i], price)) return bands[i];
+    }
+    return null;
+  }
+
+  // Detect a crossing given the previously recorded band name and a new price.
+  // Returns null when the band is unchanged (no event), else a crossing object.
+  function detectBandCrossing(bands, prevBandName, newPrice) {
+    var current = findBand(bands, newPrice);
+    var currentName = current ? current.name : null;
+    if (currentName === prevBandName) return null; // §9.1 event only on band change
+    var prev = null;
+    if (prevBandName) {
+      for (var i = 0; i < bands.length; i++) {
+        if (bands[i].name === prevBandName) {
+          prev = bands[i];
+          break;
+        }
+      }
+    }
+    var direction = crossingDirection(prev, current);
+    return {
+      from: prevBandName || null,
+      to: currentName,
+      direction: direction, // IMPROVING_ENTRY | DETERIORATING_ENTRY | UNKNOWN
+      price: newPrice,
+      stance: current ? current.stance || null : null,
+    };
+  }
+
+  // A lower price is a better (improving) entry. Order bands by lower bound.
+  function crossingDirection(prevBand, newBand) {
+    if (!prevBand || !newBand) return "UNKNOWN";
+    var p = isNum(prevBand.lower_bound) ? prevBand.lower_bound : -Infinity;
+    var n = isNum(newBand.lower_bound) ? newBand.lower_bound : -Infinity;
+    if (n < p) return "IMPROVING_ENTRY";
+    if (n > p) return "DETERIORATING_ENTRY";
+    return "UNKNOWN";
+  }
+
+  // ---------------------------------------------------------------------------
+  // §5 Step 4 — margin of safety & scenario value.
+  // ---------------------------------------------------------------------------
+  function marginOfSafety(modelledValue, currentPrice) {
+    if (!isNum(modelledValue) || modelledValue === 0 || !isNum(currentPrice)) return null;
+    return round((modelledValue - currentPrice) / modelledValue, 4);
+  }
+
+  // Probability-weighted scenario value. scenarios: [{probability, implied_value_per_share}]
+  // Probabilities are normalised so they need not sum to exactly 1.
+  function probabilityWeightedValue(scenarios) {
+    scenarios = scenarios || [];
+    var wsum = 0,
+      vsum = 0,
+      used = 0;
+    scenarios.forEach(function (s) {
+      if (isNum(s.probability) && isNum(s.implied_value_per_share)) {
+        wsum += s.probability;
+        vsum += s.probability * s.implied_value_per_share;
+        used++;
+      }
+    });
+    if (used === 0 || wsum === 0) return null;
+    return round(vsum / wsum, 2);
+  }
+
+  // ---------------------------------------------------------------------------
+  // §9 Trend / §13 — daily move detection.
+  // ---------------------------------------------------------------------------
+  function dailyMovePct(prevClose, price) {
+    if (!isNum(prevClose) || prevClose === 0 || !isNum(price)) return null;
+    return round((price - prevClose) / prevClose, 4);
+  }
+
+  // §13 rule 2: alert on > 5% move in a day. Threshold configurable.
+  function isBigDailyMove(prevClose, price, thresholdPct) {
+    var m = dailyMovePct(prevClose, price);
+    if (m == null) return false;
+    var t = isNum(thresholdPct) ? thresholdPct : 0.05;
+    return Math.abs(m) > t;
+  }
+
+  function drawdownFromHigh(price, high52w) {
+    if (!isNum(price) || !isNum(high52w) || high52w === 0) return null;
+    return round((price - high52w) / high52w, 4);
+  }
+
+  // ---------------------------------------------------------------------------
+  // §12.1 Materiality — a 1–5 scale is authored by the user/AI, but the alert
+  // threshold decision (>= 3 warrants attention & primary-source check) is a rule.
+  // ---------------------------------------------------------------------------
+  function materialityWarrantsAlert(materiality, thresh) {
+    var t = isNum(thresh) ? thresh : 3;
+    return isNum(materiality) && materiality >= t;
+  }
+  function materialityRequiresPrimarySource(materiality) {
+    return isNum(materiality) && materiality >= 3; // §12.2
+  }
+
+  // ---------------------------------------------------------------------------
+  // §11 / §38.3 Change detection — separate quality from price.
+  // Given a previous and current snapshot summary, classify the change(s).
+  // snap: { quality_score, entry_classification, thesis_status, price,
+  //         framework_version_id }
+  // ---------------------------------------------------------------------------
+  var CHANGE_TYPES = {
+    QUALITY_IMPROVEMENT: "QUALITY_IMPROVEMENT",
+    QUALITY_DETERIORATION: "QUALITY_DETERIORATION",
+    PRICE_ONLY_ENTRY_IMPROVEMENT: "PRICE_ONLY_ENTRY_IMPROVEMENT",
+    PRICE_ONLY_ENTRY_DETERIORATION: "PRICE_ONLY_ENTRY_DETERIORATION",
+    THESIS_CONFIRMATION: "THESIS_CONFIRMATION",
+    THESIS_DAMAGE: "THESIS_DAMAGE",
+    NO_MATERIAL_CHANGE: "NO_MATERIAL_CHANGE",
+  };
+
+  // Entry rank ordering, best (cheapest/most attractive) first.
+  var ENTRY_RANK = {
+    STRONG_ENTRY: 5,
+    STARTER: 4,
+    ACCEPTABLE: 3,
+    PROOF: 3,
+    WAIT: 2,
+    AVOID_CHASING: 1,
+  };
+  function entryRank(name) {
+    if (name == null) return null;
+    var k = String(name).toUpperCase().replace(/[^A-Z]/g, "_");
+    return ENTRY_RANK[k] != null ? ENTRY_RANK[k] : null;
+  }
+
+  function classifyChange(prev, curr, opts) {
+    opts = opts || {};
+    var qEps = isNum(opts.qualityEpsilon) ? opts.qualityEpsilon : 1; // ignore trivial score noise
+    var changes = [];
+    var qualityChanged = false;
+    var entryChanged = false;
+
+    // Quality delta
+    if (isNum(prev && prev.quality_score) && isNum(curr && curr.quality_score)) {
+      var dq = curr.quality_score - prev.quality_score;
+      if (dq >= qEps) {
+        changes.push(CHANGE_TYPES.QUALITY_IMPROVEMENT);
+        qualityChanged = true;
+      } else if (dq <= -qEps) {
+        changes.push(CHANGE_TYPES.QUALITY_DETERIORATION);
+        qualityChanged = true;
+      }
+    }
+
+    // Thesis status
+    if (prev && curr && prev.thesis_status && curr.thesis_status && prev.thesis_status !== curr.thesis_status) {
+      if (curr.thesis_status === "DAMAGED" || curr.thesis_status === "BROKEN") {
+        changes.push(CHANGE_TYPES.THESIS_DAMAGE);
+        qualityChanged = true;
+      } else if (curr.thesis_status === "STRENGTHENED" || curr.thesis_status === "CONFIRMED") {
+        changes.push(CHANGE_TYPES.THESIS_CONFIRMATION);
+        qualityChanged = true;
+      }
+    }
+
+    // Entry delta (price/valuation driven). Only classify as PRICE_ONLY when
+    // quality did NOT change — this is the core "price is not thesis" rule (§38.3).
+    var pr = entryRank(prev && prev.entry_classification);
+    var cr = entryRank(curr && curr.entry_classification);
+    if (pr != null && cr != null && cr !== pr) {
+      entryChanged = true;
+      if (!qualityChanged) {
+        changes.push(
+          cr > pr
+            ? CHANGE_TYPES.PRICE_ONLY_ENTRY_IMPROVEMENT
+            : CHANGE_TYPES.PRICE_ONLY_ENTRY_DETERIORATION
+        );
+      }
+    }
+
+    if (changes.length === 0) changes.push(CHANGE_TYPES.NO_MATERIAL_CHANGE);
+
+    return {
+      changes: changes,
+      quality_changed: qualityChanged,
+      entry_changed: entryChanged,
+      // §13 alert taxonomy
+      alert_kind: qualityChanged && entryChanged ? "BOTH" : qualityChanged ? "QUALITY_CHANGE" : entryChanged ? "PRICE_ONLY_CHANGE" : null,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // §13.1 Alert deduplication. Each alert has a canonical hash; dedupe within a
+  // cooldown window. bandCrossing dedupes per direction; daily-move dedupes per
+  // session unless it extends another `stepPct`.
+  // ---------------------------------------------------------------------------
+  function canonicalAlertHash(alert) {
+    // Stable key from the fields that define identity (not the wording).
+    var parts = [
+      alert.security_key || alert.security_id || "",
+      alert.type || "",
+      alert.subtype || "",
+      alert.direction || "",
+      alert.event_hash || "",
+      alert.band_to || "",
+      alert.session || "",
+    ];
+    return parts.join("|");
+  }
+
+  // existing: array of prior alerts (this session). Returns true if `candidate`
+  // is a duplicate that should be suppressed.
+  function isDuplicateAlert(candidate, existing, opts) {
+    opts = opts || {};
+    existing = existing || [];
+    var h = canonicalAlertHash(candidate);
+    for (var i = 0; i < existing.length; i++) {
+      if (canonicalAlertHash(existing[i]) === h) {
+        // For daily-move alerts, allow re-alert if the move extended by stepPct.
+        if (candidate.type === "DAILY_MOVE" && isNum(candidate.move_pct) && isNum(existing[i].move_pct)) {
+          var step = isNum(opts.stepPct) ? opts.stepPct : 0.05;
+          if (Math.abs(candidate.move_pct) - Math.abs(existing[i].move_pct) >= step) return false;
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // §20 Currency — store native and converted separately; never overwrite.
+  // ---------------------------------------------------------------------------
+  function convertCurrency(nativeValue, fxRate) {
+    if (!isNum(nativeValue) || !isNum(fxRate)) return null;
+    return round(nativeValue * fxRate, 2);
+  }
+
+  // FX attribution: split a total return into security (local) and currency parts.
+  // Returns fractions. base = reporting currency (e.g. NZD).
+  function fxAttribution(startNative, endNative, startFx, endFx) {
+    if (![startNative, endNative, startFx, endFx].every(isNum) || startNative === 0 || startFx === 0)
+      return null;
+    var startBase = startNative * startFx;
+    var endBase = endNative * endFx;
+    if (startBase === 0) return null;
+    var totalReturn = endBase / startBase - 1;
+    var localReturn = endNative / startNative - 1;
+    var fxReturn = endFx / startFx - 1;
+    return {
+      total_return: round(totalReturn, 6),
+      local_return: round(localReturn, 6),
+      fx_return: round(fxReturn, 6),
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // §25 Ranking. Precedence: hard gates → quality → entry → context → liquidity
+  // → fit → confidence. A failed gate sinks a candidate no matter the raw score.
+  // Returns a comparator-friendly sort key (array compared element-wise, desc).
+  // ---------------------------------------------------------------------------
+  var CONFIDENCE_RANK = { HIGH: 3, MEDIUM: 2, LOW: 1, INSUFFICIENT: 0 };
+
+  function rankKey(c) {
+    c = c || {};
+    var gate = c.hard_gate_status;
+    // Gate tier: PASS best, then REVIEW/UNKNOWN, FAIL worst. Failed gates cannot
+    // be rescued by any downstream score.
+    var gateTier = gate === "PASS" ? 2 : gate === "FAIL" ? 0 : 1;
+    return [
+      gateTier,
+      isNum(c.quality_score) ? c.quality_score : -1,
+      isNum(c.entry_score) ? c.entry_score : -1,
+      isNum(c.market_context_score) ? c.market_context_score : -1,
+      // lower liquidity risk ranks higher → invert
+      isNum(c.liquidity_risk) ? -c.liquidity_risk : -99,
+      isNum(c.portfolio_fit) ? c.portfolio_fit : -1,
+      CONFIDENCE_RANK[c.confidence] != null ? CONFIDENCE_RANK[c.confidence] : -1,
+    ];
+  }
+
+  function compareByRank(a, b) {
+    var ka = rankKey(a),
+      kb = rankKey(b);
+    for (var i = 0; i < ka.length; i++) {
+      if (ka[i] !== kb[i]) return kb[i] - ka[i]; // descending
+    }
+    return 0;
+  }
+
+  function rankCandidates(candidates) {
+    return (candidates || []).slice().sort(compareByRank);
+  }
+
+  // §27 Research confidence — lower a high score that rests on weak evidence.
+  // Returns an "effective" quality for ranking that never raises the raw score.
+  function confidenceAdjustedQuality(qualityScore, confidence) {
+    if (!isNum(qualityScore)) return null;
+    var factor = { HIGH: 1, MEDIUM: 0.9, LOW: 0.75, INSUFFICIENT: 0.5 }[confidence];
+    if (factor == null) factor = 0.75;
+    return round(qualityScore * factor, 1);
+  }
+
+  return {
+    UNKNOWN: UNKNOWN,
+    CORE_CATEGORIES: CORE_CATEGORIES,
+    CORE_BAND_LABELS: CORE_BAND_LABELS,
+    GATE_STATUSES: GATE_STATUSES,
+    SIGNAL_VALUES: SIGNAL_VALUES,
+    CHANGE_TYPES: CHANGE_TYPES,
+    ENTRY_RANK: ENTRY_RANK,
+    // scoring
+    coreScorecardTotal: coreScorecardTotal,
+    coreScorecardBand: coreScorecardBand,
+    liquidityHardFlag: liquidityHardFlag,
+    weightedScore: weightedScore,
+    hardGateStatus: hardGateStatus,
+    // market context
+    sixSignalScore: sixSignalScore,
+    timingBand: timingBand,
+    marketContextIntegration: marketContextIntegration,
+    decisionZone: decisionZone,
+    qualityAxis: qualityAxis,
+    flowAxis: flowAxis,
+    // entry bands
+    bandContains: bandContains,
+    findBand: findBand,
+    detectBandCrossing: detectBandCrossing,
+    crossingDirection: crossingDirection,
+    entryRank: entryRank,
+    // valuation
+    marginOfSafety: marginOfSafety,
+    probabilityWeightedValue: probabilityWeightedValue,
+    // trend / moves
+    dailyMovePct: dailyMovePct,
+    isBigDailyMove: isBigDailyMove,
+    drawdownFromHigh: drawdownFromHigh,
+    // materiality
+    materialityWarrantsAlert: materialityWarrantsAlert,
+    materialityRequiresPrimarySource: materialityRequiresPrimarySource,
+    // change detection
+    classifyChange: classifyChange,
+    // alerts
+    canonicalAlertHash: canonicalAlertHash,
+    isDuplicateAlert: isDuplicateAlert,
+    // currency
+    convertCurrency: convertCurrency,
+    fxAttribution: fxAttribution,
+    // ranking
+    rankKey: rankKey,
+    compareByRank: compareByRank,
+    rankCandidates: rankCandidates,
+    confidenceAdjustedQuality: confidenceAdjustedQuality,
+  };
+});
+
+// ==== engine/versioning.js (inlined verbatim) ====
+/*
+ * Tairāwhiti Invest — versioning helpers (§3, §38.1)
+ * --------------------------------------------------
+ * Pure helpers that enforce "never erase history". Framework versions, thesis
+ * versions and analysis snapshots are immutable rows; editing creates a NEW
+ * version and supersedes the old one without mutating it. These functions return
+ * new objects and never mutate their inputs, so the UI/db layer can rely on them.
+ */
+(function (root, factory) {
+  if (typeof module !== "undefined" && module.exports) module.exports = factory();
+  else root.Versioning = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  function nowIso() {
+    return new Date().toISOString();
+  }
+
+  // Deep clone via JSON (rows are plain data). Guarantees no shared references so
+  // a new version can never mutate a prior one.
+  function clone(x) {
+    return x == null ? x : JSON.parse(JSON.stringify(x));
+  }
+
+  // Create the next framework version from a base, applying `changes`. The base
+  // is returned untouched (immutability); the new version gets a fresh id and an
+  // incremented version number and records what changed.
+  function nextFrameworkVersion(base, changes, newId, at) {
+    var prev = clone(base) || {};
+    var next = clone(base) || {};
+    next.id = newId;
+    next.version = (prev.version || 0) + 1;
+    next.previous_version_id = prev.id || null;
+    next.created_at = at || nowIso();
+    next.superseded_at = null;
+    Object.keys(changes || {}).forEach(function (k) {
+      next[k] = clone(changes[k]);
+    });
+    return { previous: prev, next: next };
+  }
+
+  // Supersede a row without destroying it: returns a copy stamped with
+  // superseded_at. Callers persist this alongside the new active row.
+  function supersede(row, at) {
+    var c = clone(row) || {};
+    c.superseded_at = at || nowIso();
+    return c;
+  }
+
+  // Thesis version history. Adds a new version; prior versions are retained and
+  // marked superseded. Returns { versions:[...], active } — inputs untouched.
+  function addThesisVersion(existingVersions, newVersion, newId, at) {
+    var stamp = at || nowIso();
+    var versions = (existingVersions || []).map(function (v) {
+      var c = clone(v);
+      if (!c.superseded_at) c.superseded_at = stamp;
+      return c;
+    });
+    var active = clone(newVersion) || {};
+    active.id = newId;
+    active.version = versions.length + 1;
+    active.created_at = stamp;
+    active.superseded_at = null;
+    versions.push(active);
+    return { versions: versions, active: active };
+  }
+
+  // A diff of two thesis versions' structured fields, for the "what changed" log.
+  function thesisDiff(a, b) {
+    a = a || {};
+    b = b || {};
+    var fields = [
+      "fundamental_reason",
+      "supporting_flow_condition",
+      "main_risk",
+      "thesis_type",
+      "consensus_position",
+      "portfolio_role",
+      "intended_time_horizon",
+      "narrative",
+    ];
+    var changed = {};
+    fields.forEach(function (f) {
+      if (JSON.stringify(a[f]) !== JSON.stringify(b[f])) {
+        changed[f] = { from: a[f] == null ? null : a[f], to: b[f] == null ? null : b[f] };
+      }
+    });
+    return changed;
+  }
+
+  return {
+    nowIso: nowIso,
+    clone: clone,
+    nextFrameworkVersion: nextFrameworkVersion,
+    supersede: supersede,
+    addThesisVersion: addThesisVersion,
+    thesisDiff: thesisDiff,
+  };
+});
+
+</script>
+
+<script>
+(function(){
+"use strict";
+const {useState,useEffect,useMemo,useRef,useCallback,createContext,useContext,Fragment}=React;
+const html=htm.bind(React.createElement);
+const E=window.Engine, VZ=window.Versioning;
+
+/* ------------------------------------------------------------------ helpers */
+const uid=()=> (Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+const nowIso=()=> new Date().toISOString();
+const todayKey=()=> new Date().toISOString().slice(0,10);
+const clone=(x)=> x==null?x:JSON.parse(JSON.stringify(x));
+function num(x){ const n=typeof x==="string"?parseFloat(x):x; return (typeof n==="number"&&isFinite(n))?n:null; }
+function fmtNum(x,dp){ if(x==null||!isFinite(x))return "—"; return Number(x).toLocaleString(undefined,{minimumFractionDigits:dp||0,maximumFractionDigits:dp==null?2:dp}); }
+function fmtMoney(x,ccy,dp){ if(x==null||!isFinite(x))return "—"; return (ccy?ccy+" ":"")+Number(x).toLocaleString(undefined,{minimumFractionDigits:dp==null?2:dp,maximumFractionDigits:dp==null?2:dp}); }
+function fmtPct(x,dp){ if(x==null||!isFinite(x))return "—"; return (x>=0?"+":"")+(x*100).toFixed(dp==null?1:dp)+"%"; }
+function fmtDate(iso){ if(!iso)return "—"; try{return new Date(iso).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});}catch(e){return iso;} }
+function daysSince(iso){ if(!iso)return null; return Math.floor((Date.now()-new Date(iso).getTime())/86400000); }
+function titleCase(s){ return (s==null?"":String(s)).replace(/_/g," ").toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()); }
+function secKey(s){ return (s.exchange||"?")+":"+(s.ticker||"?"); }
+
+/* Enum option lists (from spec) */
+const EXCHANGES=["NZX","ASX","NASDAQ","NYSE","CBOE","LSE","TSX","OTHER"];
+const ASSET_TYPES=["STOCK","ETF","FUND","REIT","ADR","COMMODITY","CRYPTO","OTHER"];
+const ROLES=["CORE_COMPOUNDER","BROAD_MARKET","DEFENSIVE","INCOME","TACTICAL_FLOW","INFLATION_HEDGE","CURRENCY_GEOGRAPHIC_DIVERSIFIER","GARP","SPECULATIVE","TURNAROUND","OTHER"];
+const ROLE_LABEL={GARP:"GARP / growth at reasonable price",CURRENCY_GEOGRAPHIC_DIVERSIFIER:"Currency / geographic diversifier"};
+const TIERS=["TIER_1","TIER_2","TIER_3","TIER_4","UNTIERED"];
+const STAGES=["WATCHLIST","STARTER","ADD","FULL_ALLOCATION","STOP_ADDING"];
+const STANCES=["STRONG_ENTRY","STARTER","ACCEPTABLE","WAIT","AVOID_CHASING"];
+const THESIS_TYPES=["long_term","cyclical","tactical","turnaround","defensive","other"];
+const CONSENSUS=["contrarian","consensus","crowded","unclear"];
+const THESIS_STATUS=["INTACT","STRENGTHENED","CONFIRMED","NEUTRAL","DAMAGED","BROKEN"];
+const FLOW_CONDITIONS=["EARLY_POSITIVE_TURN","STRONG_POSITIVE","NEUTRAL","NEGATIVE_STABILISING","NEGATIVE_WORSENING"];
+const TEMPORAL=["GOOD_ENTRY","NEUTRAL","BAD_ENTRY_WAIT"];
+const STRUCTURAL=["STRONG_STRUCTURAL","MIXED","CYCLICAL_ONLY"];
+const IRRATIONAL=["TOO_PESSIMISTIC","FAIR","TOO_OPTIMISTIC"];
+const SIGNAL_LABELS=["Earnings cycle favourable?","Price move / drawdown favourable?","A structural driver is permanent?","Structural advantage likely in 5 years?","Market pricing fear not greed?","Price supportable by fundamentals?"];
+const SIGNAL_VALUES=["FAVOURABLE","MIXED","UNFAVOURABLE","UNKNOWN"];
+const GATE_STATUS=["PASS","REVIEW","FAIL","NOT_APPLICABLE","UNKNOWN"];
+const CONFIDENCE=["HIGH","MEDIUM","LOW","INSUFFICIENT"];
+const EVENT_TYPES=["EARNINGS","GUIDANCE","TRADING_UPDATE","CAPITAL_RAISE","BUYBACK","DIVIDEND","M_AND_A","CEO_CHANGE","CFO_CHANGE","BOARD_GOVERNANCE","REGULATORY","LITIGATION","PRODUCT","CUSTOMER_CONTRACT","CYBER_SECURITY","DEBT_REFINANCING","CREDIT_RATING","INSIDER_TRANSACTION","SECTOR_EVENT","MACRO_EVENT","OTHER"];
+const SIZE_GUIDE=[["Core holding","5–15%"],["High-conviction satellite","3–7%"],["Tactical flow","1–3%"],["Speculative / illiquid","0.5–2%"],["Watchlist","0%"]];
+const KAWA=["Do not buy illiquidity by accident.","Do not confuse cheap with attractive.","Do not chase late flows.","Respect macro liquidity.","Scale in rather than rush in.","Know the marginal buyer.","Know the forced seller.","Keep dry powder.","Review flows regularly.","Trim when the story becomes too obvious.","Every holding must have a role.","Strong views require strong evidence.","If liquidity disappears, valuation may not matter short term.","The best opportunities occur as flows begin to turn.","Improve decision quality; avoid avoidable mistakes."];
+
+/* Profile B default framework (§3.1) — stored as data, versioned. */
+const PROFILE_B_DIMS=[
+  {key:"business_quality",label:"Business quality",weight:20,purpose:"Business model, recurring economics, customer quality, industry structure"},
+  {key:"moat_durability",label:"Moat & durability",weight:20,purpose:"Pricing power, network effects, switching costs, scale, regulatory advantage"},
+  {key:"management_capital",label:"Management & capital allocation",weight:15,purpose:"Trust, governance, reinvestment, buybacks, M&A, dilution"},
+  {key:"financial_strength",label:"Financial strength",weight:15,purpose:"Balance sheet, cash conversion, earnings quality, resilience"},
+  {key:"growth_trajectory",label:"Growth trajectory",weight:14,purpose:"Organic growth, unit economics, durability, forward evidence"},
+  {key:"valuation_mos",label:"Valuation / margin of safety",weight:10,purpose:"What price assumes, downside support, scenario value"},
+  {key:"market_context",label:"Market context",weight:6,purpose:"Temporal + Structural + Irrational timing overlay"}
+];
+const DEFAULT_GATES=[
+  {key:"durable_moat",label:"Durable moat / defensible business?"},
+  {key:"management_trust",label:"Management trustworthy / governance acceptable?"},
+  {key:"balance_sheet",label:"Balance sheet survivable?"},
+  {key:"earnings_quality",label:"Earnings / FCF quality acceptable?"},
+  {key:"margin_of_safety",label:"Margin of safety sufficient?"},
+  {key:"market_context",label:"Market context favourable enough to deploy?"},
+  {key:"liquidity",label:"Liquidity acceptable for intended size?"}
+];
+const CORE_A_CATS=[["quality","Quality / fundamentals"],["valuation","Valuation"],["trading_liquidity","Trading liquidity"],["underlying_liquidity","Underlying liquidity"],["capital_flows","Capital flows"],["macro_liquidity","Macro liquidity"],["trend_momentum","Trend / momentum"],["risk_control","Risk control"]];
+
+/* ------------------------------------------------------------------ store */
+/* db capability with a localStorage fallback so the app also runs in preview. */
+const COLLS=["securities","snapshots","alerts","events","reviews","framework_versions"];
+const LS="ti:";
+function lsGet(c){ try{return JSON.parse(localStorage.getItem(LS+c)||"[]");}catch(e){return [];} }
+function lsSet(c,arr){ try{localStorage.setItem(LS+c,JSON.stringify(arr));}catch(e){} }
+function lsMetaGet(){ try{return JSON.parse(localStorage.getItem(LS+"meta")||"{}");}catch(e){return {};} }
+function lsMetaSet(o){ try{localStorage.setItem(LS+"meta",JSON.stringify(o));}catch(e){} }
+
+async function makeStore(){
+  let db=null;
+  try{ if(window.claude&&window.claude.use){ db=await window.claude.use("db"); } }catch(e){ db=null; }
+  const backend = db ? "db" : "local";
+  async function listAll(c){
+    if(db){ try{ const s=await db.collection(c).limit(1000).get(); return s.docs.map(d=>({id:d.id,...d.data()})); }catch(e){ return []; } }
+    return lsGet(c);
+  }
+  async function put(c,id,data){
+    const doc={...data,id};
+    if(db){ await db.collection(c).doc(id).set(doc); }
+    else { const a=lsGet(c).filter(x=>x.id!==id); a.push(doc); lsSet(c,a); }
+    return doc;
+  }
+  async function remove(c,id){
+    if(db){ await db.collection(c).doc(id).delete(); }
+    else { lsSet(c,lsGet(c).filter(x=>x.id!==id)); }
+  }
+  async function getMeta(){
+    if(db){ try{ const d=await db.doc("meta/app").get(); return d.exists?d.data():{}; }catch(e){ return {}; } }
+    return lsMetaGet();
+  }
+  async function setMeta(o){
+    if(db){ await db.doc("meta/app").set({...o}); } else { lsMetaSet(o); }
+  }
+  return {backend,listAll,put,remove,getMeta,setMeta};
+}
+
+/* ------------------------------------------------------------------ AI (sample) + downloads */
+async function getSample(){ try{ if(window.claude&&window.claude.use) return await window.claude.use("sample"); }catch(e){} return null; }
+async function getDownloads(){ try{ if(window.claude&&window.claude.use) return await window.claude.use("downloads"); }catch(e){} return null; }
+
+/* ------------------------------------------------------------------ derive an analysis result from a snapshot's inputs (deterministic) */
+function deriveSnapshot(inputs, activeFw, security){
+  // inputs: {dimB:{}, coreA:{}, gates:{}, temporal, structural, irrational, signals:[6], flow_condition, confidence, ...}
+  const weights={}; (activeFw.dimensions||PROFILE_B_DIMS).forEach(d=>weights[d.key]=d.weight);
+  const q=E.weightedScore(inputs.dimB||{},weights,5);
+  const core=E.coreScorecardTotal(inputs.coreA||{});
+  const liq=E.liquidityHardFlag(inputs.coreA||{});
+  const gateArr=(activeFw.gates||DEFAULT_GATES).map(g=>({name:g.key,label:g.label,status:(inputs.gates||{})[g.key]||"UNKNOWN"}));
+  const gate=E.hardGateStatus(gateArr);
+  const six=E.sixSignalScore(inputs.signals||[]);
+  const qualityOk = gate.overall!=="FAIL" && (q.score==null||q.score>=55);
+  const integ=E.marketContextIntegration(qualityOk, six.favourable);
+  const price=security&&security.price?num(security.price.current):null;
+  const band=E.findBand((security&&security.entry_bands)||[], price);
+  const entryStance=band?band.stance:null;
+  const qAxis=E.qualityAxis(q.score, (activeFw.quality_high_threshold||60));
+  const zone=E.decisionZone(qAxis==="UNKNOWN"?"LOW":qAxis, E.flowAxis(inputs.flow_condition));
+  return {
+    quality_score:q.score, quality_complete:q.complete, quality_missing:q.missing,
+    core_total:core.total, core_band:core.band, core_complete:core.complete,
+    liquidity_flag:liq.flag, gates:gateArr, gate_overall:gate.overall, deployable:gate.deployable,
+    six:six, integration:integ, entry_stance:entryStance, entry_band_name:band?band.name:null,
+    decision_zone:zone, quality_axis:qAxis
+  };
+}
+
+/* ------------------------------------------------------------------ app context */
+const Ctx=createContext(null);
+const useApp=()=>useContext(Ctx);
+
+function AppProvider({children}){
+  const [store,setStore]=useState(null);
+  const [backend,setBackend]=useState("…");
+  const [securities,setSecurities]=useState([]);
+  const [snapshots,setSnapshots]=useState([]);
+  const [alerts,setAlerts]=useState([]);
+  const [events,setEvents]=useState([]);
+  const [frameworks,setFrameworks]=useState([]);
+  const [meta,setMetaState]=useState({});
+  const [booting,setBooting]=useState(true);
+  const [toast,setToast]=useState(null);
+  const [hasSample,setHasSample]=useState(false);
+
+  const notify=useCallback((m)=>{ setToast(m); setTimeout(()=>setToast(t=>t===m?null:t),2600); },[]);
+
+  useEffect(()=>{ (async()=>{
+    const s=await makeStore(); setStore(s); setBackend(s.backend);
+    const smp=await getSample(); setHasSample(!!smp);
+    let m=await s.getMeta();
+    let fws=await s.listAll("framework_versions");
+    if(!m||!m.seeded||!fws.length){
+      // seed Profile A + Profile B framework versions
+      const a={id:uid(),name:"Core LLM Decision-Support Scorecard",profile:"A",version:1,created_at:nowIso(),superseded_at:null,
+        core_categories:CORE_A_CATS.map(c=>({key:c[0],label:c[1],max:5})), note:"Explicit 40-point scorecard."};
+      const b={id:uid(),name:"Quality / Entry Overlay",profile:"B",version:1,created_at:nowIso(),superseded_at:null,
+        dimensions:clone(PROFILE_B_DIMS), gates:clone(DEFAULT_GATES), quality_high_threshold:60,
+        note:"Business quality assessed separately from entry quality."};
+      await s.put("framework_versions",a.id,a); await s.put("framework_versions",b.id,b);
+      m={...m,seeded:true,active_fw:b.id,base_ccy:m.base_ccy||"NZD",move_threshold:0.05,redact_positions:false,theme:m.theme||"system"};
+      await s.setMeta(m);
+      fws=[a,b];
+    }
+    const [secs,snaps,al,ev]=await Promise.all([s.listAll("securities"),s.listAll("snapshots"),s.listAll("alerts"),s.listAll("events")]);
+    setSecurities(secs); setSnapshots(snaps); setAlerts(al); setEvents(ev); setFrameworks(fws); setMetaState(m);
+    setBooting(false);
+  })(); },[]);
+
+  const activeFw=useMemo(()=> frameworks.find(f=>f.id===meta.active_fw) || frameworks.find(f=>f.profile==="B") || frameworks[0] || {dimensions:PROFILE_B_DIMS,gates:DEFAULT_GATES}, [frameworks,meta]);
+
+  /* mutations ---------------------------------------------------------- */
+  const saveSecurity=useCallback(async(sec)=>{
+    const rec={...sec, id:sec.id||uid(), updated_at:nowIso(), created_at:sec.created_at||nowIso()};
+    await store.put("securities",rec.id,rec);
+    setSecurities(list=> { const o=list.filter(x=>x.id!==rec.id); o.push(rec); return o; });
+    return rec;
+  },[store]);
+
+  const deleteSecurity=useCallback(async(id)=>{
+    await store.remove("securities",id);
+    setSecurities(l=>l.filter(x=>x.id!==id));
+  },[store]);
+
+  const pushAlert=useCallback(async(a)=>{
+    const rec={...a,id:uid(),created_at:nowIso(),read:false};
+    // dedupe against existing alerts (this session where relevant)
+    const existing=alertsRef.current;
+    if(E.isDuplicateAlert(rec, existing)) return null;
+    await store.put("alerts",rec.id,rec);
+    setAlerts(l=>[rec,...l]);
+    return rec;
+  },[store]);
+  const alertsRef=useRef([]); useEffect(()=>{alertsRef.current=alerts;},[alerts]);
+
+  const markAlert=useCallback(async(id,read)=>{
+    const a=alertsRef.current.find(x=>x.id===id); if(!a)return;
+    const rec={...a,read:read}; await store.put("alerts",id,rec);
+    setAlerts(l=>l.map(x=>x.id===id?rec:x));
+  },[store]);
+  const deleteAlert=useCallback(async(id)=>{ await store.remove("alerts",id); setAlerts(l=>l.filter(x=>x.id!==id)); },[store]);
+
+  const saveSnapshot=useCallback(async(snap)=>{
+    const rec={...snap,id:snap.id||uid(),as_of:snap.as_of||nowIso(),created_at:nowIso()};
+    await store.put("snapshots",rec.id,rec);
+    setSnapshots(l=>[rec,...l]);
+    return rec;
+  },[store]);
+
+  const saveEvent=useCallback(async(ev)=>{
+    const rec={...ev,id:ev.id||uid(),created_at:nowIso()};
+    await store.put("events",rec.id,rec);
+    setEvents(l=>[rec,...l]);
+    return rec;
+  },[store]);
+  const deleteEvent=useCallback(async(id)=>{ await store.remove("events",id); setEvents(l=>l.filter(x=>x.id!==id)); },[store]);
+
+  const saveFramework=useCallback(async(fw)=>{
+    await store.put("framework_versions",fw.id,fw);
+    setFrameworks(l=>{const o=l.filter(x=>x.id!==fw.id);o.push(fw);return o;});
+    return fw;
+  },[store]);
+
+  const updateMeta=useCallback(async(patch)=>{
+    const m={...metaRef.current,...patch}; await store.setMeta(m); setMetaState(m); return m;
+  },[store]);
+  const metaRef=useRef({}); useEffect(()=>{metaRef.current=meta;},[meta]);
+
+  const value={backend,securities,snapshots,alerts,events,frameworks,meta,activeFw,booting,notify,hasSample,
+    saveSecurity,deleteSecurity,pushAlert,markAlert,deleteAlert,saveSnapshot,saveEvent,deleteEvent,saveFramework,updateMeta,store};
+
+  return html`<${Ctx.Provider} value=${value}>
+    ${children}
+    ${toast&&html`<div class="toast" role="status">${toast}</div>`}
+  </${Ctx.Provider}>`;
+}
+
+/* ------------------------------------------------------------------ routing */
+function useRoute(){
+  const [route,setRoute]=useState(()=>parseHash());
+  useEffect(()=>{ const on=()=>setRoute(parseHash()); window.addEventListener("hashchange",on); return ()=>window.removeEventListener("hashchange",on); },[]);
+  return route;
+}
+function parseHash(){
+  let h=(location.hash||"#/").replace(/^#/,""); if(!h.startsWith("/"))h="/"+h;
+  const parts=h.split("/").filter(Boolean);
+  return {path:h,parts};
+}
+const go=(p)=>{ location.hash="#"+p; };
+
+/* ------------------------------------------------------------------ icons (inline, stroke=currentColor) */
+const I=(d,fill)=> html`<svg class="ic" viewBox="0 0 24 24" fill=${fill?"currentColor":"none"} stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const icons={
+  dash:()=>I(html`<path d="M4 13h7V4H4zM13 20h7v-9h-7zM13 4v5h7V4zM4 20h7v-4H4z"/>`),
+  securities:()=>I(html`<path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/>`),
+  watch:()=>I(html`<path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/>`),
+  portfolio:()=>I(html`<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>`),
+  alerts:()=>I(html`<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>`),
+  events:()=>I(html`<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/>`),
+  compare:()=>I(html`<path d="M9 3v18M4 7h5M4 12h5M15 3v18M15 8h5M15 13h5"/>`),
+  research:()=>I(html`<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>`),
+  framework:()=>I(html`<path d="M12 2l8 4.5v9L12 20l-8-4.5v-9z"/><path d="M12 11l8-4.5M12 11v9M12 11L4 6.5"/>`),
+  settings:()=>I(html`<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.2A1.6 1.6 0 0 0 6.6 19l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 4 12.6H4a2 2 0 0 1 0-4h.2A1.6 1.6 0 0 0 5.6 6L5.5 6a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 11 4.6V4a2 2 0 0 1 4 0v.2a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 0 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1z"/>`),
+  more:()=>I(html`<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>`),
+  plus:()=>I(html`<path d="M12 5v14M5 12h14"/>`),
+  back:()=>I(html`<path d="M15 18l-6-6 6-6"/>`),
+  chev:()=>I(html`<path d="M9 6l6 6-6 6"/>`),
+  spark:()=>I(html`<path d="M13 2L3 14h7l-1 8 10-12h-7z"/>`)
+};
+
+/* ------------------------------------------------------------------ shared components */
+function Chip({kind,children,title}){ return html`<span class="chip ${kind||''}" title=${title||''}><span class="dot"></span>${children}</span>`; }
+function statusKind(s){
+  const g=["PASS","GOOD_ENTRY","STRONG_STRUCTURAL","TOO_PESSIMISTIC","STRONG_TIMING","INTACT","STRENGTHENED","CONFIRMED","BEST","STRONG_CANDIDATE","IMPROVING_ENTRY","FAVOURABLE","QUALITY_IMPROVEMENT","THESIS_CONFIRMATION","PRICE_ONLY_ENTRY_IMPROVEMENT","STRONG_ENTRY","STARTER"];
+  const w=["REVIEW","NEUTRAL","MIXED","FAIR","ACCEPTABLE_CONSERVATIVE_SIZE","PATIENCE","WATCHLIST_OR_STAGED","WAIT","ACCEPTABLE","STOP_ADDING","WATCHLIST_NOT_CHASE"];
+  const b=["FAIL","BAD_ENTRY_WAIT","CYCLICAL_ONLY","TOO_OPTIMISTIC","WATCH_WAIT","DAMAGED","BROKEN","AVOID","AVOID_OR_KEEP_SMALL","DETERIORATING_ENTRY","UNFAVOURABLE","QUALITY_DETERIORATION","THESIS_DAMAGE","PRICE_ONLY_ENTRY_DETERIORATION","AVOID_CHASING","HIGH_LIQUIDITY_RISK","VALUE_TRAP_OR_TRADING_ONLY"];
+  if(s==null||s==="UNKNOWN")return "unknown";
+  if(g.includes(s))return "good"; if(w.includes(s))return "warn"; if(b.includes(s))return "bad";
+  if(s==="NOT_APPLICABLE")return "neutral"; return "neutral";
+}
+function St({v}){ return html`<${Chip} kind=${statusKind(v)}>${titleCase(v||"Unknown")}</${Chip}>`; }
+
+function Freshness({p}){ const map={LIVE:"good",DELAYED:"warn",END_OF_DAY:"neutral",LATEST_REPORTED_PERIOD:"neutral",STALE:"bad",MANUAL:"warn",UNKNOWN:"unknown"};
+  return html`<${Chip} kind=${map[p]||'unknown'} title="Data freshness">${titleCase(p||"Unknown")}</${Chip}>`; }
+
+function Modal({title,onClose,children,wide}){
+  useEffect(()=>{ const on=(e)=>{if(e.key==="Escape")onClose();}; window.addEventListener("keydown",on); return ()=>window.removeEventListener("keydown",on); },[onClose]);
+  return html`<div class="modal-bg" onClick=${(e)=>{if(e.target.className==="modal-bg")onClose();}}>
+    <div class="modal" style=${wide?{maxWidth:"920px"}:{}} role="dialog" aria-modal="true">
+      <div class="mh"><h3>${title}</h3><button class="iconbtn" onClick=${onClose} aria-label="Close">Close</button></div>
+      <div class="mb">${children}</div>
+    </div></div>`;
+}
+function Field({label,children,hint}){ return html`<label class="f">${label}${children}${hint&&html`<span class="xs muted" style=${{fontWeight:400}}>${hint}</span>`}</label>`; }
+function Sel({value,onChange,options,labeler,placeholder}){
+  return html`<select value=${value||""} onChange=${e=>onChange(e.target.value)}>
+    ${placeholder&&html`<option value="">${placeholder}</option>`}
+    ${options.map(o=>{const v=Array.isArray(o)?o[0]:o;const l=Array.isArray(o)?o[1]:(labeler?labeler(o):titleCase(o));return html`<option key=${v} value=${v}>${l}</option>`;})}
+  </select>`;
+}
+
+/* ------- SVG charts (theme-token colours) ------- */
+function EntryBandChart({bands,price,ccy}){
+  if(!bands||!bands.length)return html`<div class="muted small">No entry bands set.</div>`;
+  const vals=[]; bands.forEach(b=>{ if(b.lower_bound!=null)vals.push(+b.lower_bound); if(b.upper_bound!=null)vals.push(+b.upper_bound); });
+  if(price!=null)vals.push(price);
+  let lo=Math.min.apply(null,vals), hi=Math.max.apply(null,vals); if(lo===hi){lo=lo*0.9;hi=hi*1.1;}
+  const pad=(hi-lo)*0.08; lo-=pad; hi+=pad;
+  const W=560,H=74,L=8,R=8,top=16,bh=26; const sx=(v)=> L+((v-lo)/(hi-lo))*(W-L-R);
+  const cols={STRONG_ENTRY:"var(--good)",STARTER:"var(--pounamu-2)",ACCEPTABLE:"var(--kowhai)",WAIT:"var(--neutral)",AVOID_CHASING:"var(--bad)"};
+  const order=[...bands].sort((a,b)=>((a.lower_bound==null?-1e9:a.lower_bound)-(b.lower_bound==null?-1e9:b.lower_bound)));
+  return html`<div class="scroll-x"><svg viewBox="0 0 ${W} ${H}" width="100%" style=${{maxWidth:W+"px"}} role="img" aria-label="Entry bands with current price">
+    ${order.map((b,i)=>{ const x1=sx(b.lower_bound==null?lo:+b.lower_bound), x2=sx(b.upper_bound==null?hi:+b.upper_bound);
+      return html`<g key=${i}><rect x=${x1} y=${top} width=${Math.max(1,x2-x1)} height=${bh} fill=${cols[b.stance]||'var(--neutral)'} opacity="0.5"/>
+        <text x=${(x1+x2)/2} y=${top+bh+13} fill="var(--muted)" font-size="8.5" text-anchor="middle" font-family="var(--mono)">${titleCase(b.stance)}</text></g>`; })}
+    ${price!=null&&html`<g><line x1=${sx(price)} y1=${top-6} x2=${sx(price)} y2=${top+bh+6} stroke="var(--ink)" stroke-width="2"/>
+      <polygon points="${sx(price)-4},${top-6} ${sx(price)+4},${top-6} ${sx(price)},${top-1}" fill="var(--ink)"/>
+      <text x=${sx(price)} y=${top-9} fill="var(--ink)" font-size="9.5" text-anchor="middle" font-family="var(--mono)" font-weight="600">${ccy||''} ${fmtNum(price,2)}</text></g>`}
+  </svg></div>`;
+}
+function PriceChart({history,bands,events}){
+  if(!history||history.length<2)return html`<div class="muted small">Not enough price points to chart. Add prices on this security.</div>`;
+  const H=180,W=560,L=44,R=10,T=12,B=24;
+  const xs=history.map((p,i)=>i), ys=history.map(p=>+p.close);
+  let lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys);
+  if(bands){bands.forEach(b=>{if(b.lower_bound!=null){lo=Math.min(lo,+b.lower_bound);hi=Math.max(hi,+b.lower_bound);}if(b.upper_bound!=null){lo=Math.min(lo,+b.upper_bound);hi=Math.max(hi,+b.upper_bound);}});}
+  const pad=(hi-lo)*0.08||1; lo-=pad;hi+=pad;
+  const sx=(i)=> L+(i/(xs.length-1))*(W-L-R), sy=(v)=> T+(1-(v-lo)/(hi-lo))*(H-T-B);
+  const path=history.map((p,i)=>(i?"L":"M")+sx(i).toFixed(1)+" "+sy(+p.close).toFixed(1)).join(" ");
+  const area=path+` L ${sx(xs.length-1)} ${H-B} L ${sx(0)} ${H-B} Z`;
+  const cols={STRONG_ENTRY:"var(--good)",STARTER:"var(--pounamu-2)",ACCEPTABLE:"var(--kowhai)",WAIT:"var(--neutral)",AVOID_CHASING:"var(--bad)"};
+  const ticks=4; const tk=[];for(let i=0;i<=ticks;i++)tk.push(lo+(hi-lo)*i/ticks);
+  return html`<div class="scroll-x"><svg viewBox="0 0 ${W} ${H}" width="100%" style=${{maxWidth:W+"px"}} role="img" aria-label="Price history with entry bands">
+    ${tk.map((v,i)=>html`<g key=${i}><line x1=${L} y1=${sy(v)} x2=${W-R} y2=${sy(v)} stroke="var(--hair)" stroke-width="1"/>
+      <text x=${L-6} y=${sy(v)+3} fill="var(--muted)" font-size="8.5" text-anchor="end" font-family="var(--mono)">${fmtNum(v,0)}</text></g>`)}
+    ${(bands||[]).map((b,i)=> (b.lower_bound!=null||b.upper_bound!=null) ? html`<line key=${'b'+i} x1=${L} x2=${W-R} y1=${sy(b.upper_bound!=null?+b.upper_bound:+b.lower_bound)} y2=${sy(b.upper_bound!=null?+b.upper_bound:+b.lower_bound)} stroke=${cols[b.stance]||'var(--neutral)'} stroke-dasharray="3 3" stroke-width="1" opacity="0.8"/>` : null)}
+    <path d=${area} fill="var(--ocean)" opacity="0.10"/>
+    <path d=${path} fill="none" stroke="var(--ocean)" stroke-width="2"/>
+    <circle cx=${sx(xs.length-1)} cy=${sy(+history[history.length-1].close)} r="3.2" fill="var(--ocean)"/>
+    <text x=${L} y=${H-8} fill="var(--muted)" font-size="8.5" font-family="var(--mono)">${history[0].date||''}</text>
+    <text x=${W-R} y=${H-8} fill="var(--muted)" font-size="8.5" text-anchor="end" font-family="var(--mono)">${history[history.length-1].date||''}</text>
+  </svg></div>`;
+}
+function Donut({data}){ // data:[{label,value,color}]
+  const total=data.reduce((s,d)=>s+d.value,0)||1; let a=-Math.PI/2; const R=52,r=32,C=60;
+  const seg=data.map((d,i)=>{ const frac=d.value/total; const a2=a+frac*2*Math.PI;
+    const x1=C+R*Math.cos(a),y1=C+R*Math.sin(a),x2=C+R*Math.cos(a2),y2=C+R*Math.sin(a2);
+    const x3=C+r*Math.cos(a2),y3=C+r*Math.sin(a2),x4=C+r*Math.cos(a),y4=C+r*Math.sin(a);
+    const large=frac>0.5?1:0; a=a2;
+    return html`<path key=${i} d="M${x1} ${y1} A${R} ${R} 0 ${large} 1 ${x2} ${y2} L${x3} ${y3} A${r} ${r} 0 ${large} 0 ${x4} ${y4} Z" fill=${d.color}/>`; });
+  return html`<div class="row" style=${{gap:"16px",flexWrap:"wrap"}}>
+    <svg viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Allocation">${seg}</svg>
+    <div class="stack" style=${{gap:"4px"}}>${data.map((d,i)=>html`<div key=${i} class="row xs"><span style=${{width:"10px",height:"10px",background:d.color,borderRadius:"3px"}}></span><span class="muted">${d.label}</span><b class="mono">${fmtNum(d.value,0)}</b></div>`)}</div>
+  </div>`;
+}
+
+/* ============================================================ navigation */
+const NAV=[
+  {p:"/dashboard",label:"Overview",reo:"Te Tirohanga",icon:icons.dash},
+  {p:"/securities",label:"Securities",reo:"",icon:icons.securities},
+  {p:"/watchlists",label:"Watchlist",reo:"",icon:icons.watch},
+  {p:"/portfolio",label:"Portfolio",reo:"",icon:icons.portfolio},
+  {p:"/alerts",label:"Alerts",reo:"",icon:icons.alerts},
+  {p:"/events",label:"Events",reo:"",icon:icons.events},
+  {p:"/compare",label:"Compare",reo:"",icon:icons.compare},
+  {p:"/research",label:"Research",reo:"",icon:icons.research},
+  {p:"/framework",label:"Framework",reo:"Kawa",icon:icons.framework},
+  {p:"/settings",label:"Settings",reo:"",icon:icons.settings}
+];
+const Koru=()=>html`<svg class="k" viewBox="0 0 24 24" fill="none" stroke="var(--pounamu)" stroke-width="1.8" stroke-linecap="round"><path d="M12 21c-4 0-7-3-7-7 0-3.5 2.7-6 6-6 2.6 0 4.5 1.9 4.5 4.3 0 1.9-1.4 3.4-3.2 3.4-1.4 0-2.5-1-2.5-2.4"/></svg>`;
+
+function Rail({path,alerts}){
+  const unread=alerts.filter(a=>!a.read).length;
+  return html`<nav class="rail">
+    <div class="brand"><${Koru}/><div><b>Tairāwhiti Invest</b><br/><small class="reo">te pūkete rangahau</small></div></div>
+    ${NAV.map(n=>{ const on=path.startsWith(n.p)|| (n.p==="/dashboard"&&(path==="/"||path===""));
+      return html`<a key=${n.p} class="nav ${on?'on':''}" href=${"#"+n.p}>${n.icon()}<span>${n.label}${n.p==="/alerts"&&unread?html` <span class="chip bad" style=${{padding:"0 6px"}}>${unread}</span>`:""}</span></a>`; })}
+    <div class="spacer"></div>
+    <div class="grp xs muted">Research memory, not a trading terminal.</div>
+  </nav>`;
+}
+function TabBar({path,alerts,onMore}){
+  const main=[NAV[0],NAV[1],NAV[2],NAV[4]]; const unread=alerts.filter(a=>!a.read).length;
+  return html`<nav class="tabbar">
+    ${main.map(n=>{const on=path.startsWith(n.p)||(n.p==="/dashboard"&&(path==="/"||path===""));
+      return html`<a key=${n.p} class=${on?'on':''} href=${"#"+n.p}>${n.icon()}<span>${n.label}${n.p==="/alerts"&&unread?" ("+unread+")":""}</span></a>`; })}
+    <a href="#" class=${['/portfolio','/events','/compare','/research','/framework','/settings','/securities'].some(p=>path.startsWith(p))?'on':''} onClick=${e=>{e.preventDefault();onMore();}}>${icons.more()}<span>More</span></a>
+  </nav>`;
+}
+function TopBar({title}){ return html`<header class="topbar"><${Koru}/><div class="brand"><b>${title||"Tairāwhiti Invest"}</b></div><div class="sp"></div></header>`; }
+
+function MoreSheet({onClose}){
+  const items=NAV.slice(3);
+  return html`<div class="more-sheet" onClick=${e=>{if(e.target.className==='more-sheet')onClose();}}>
+    <div class="card"><div class="between"><h3>Menu</h3><button class="iconbtn" onClick=${onClose}>Close</button></div>
+    <div class="more-grid">${items.map(n=>html`<a key=${n.p} href=${"#"+n.p} onClick=${onClose}>${n.icon()}<span>${n.label}</span></a>`)}</div></div>
+  </div>`;
+}
+
+/* ============================================================ Dashboard */
+function candidateFromSec(s){
+  const l=s.latest||{};
+  return {id:s.id,sec:s,name:secKey(s),hard_gate_status:l.gate_overall||"UNKNOWN",
+    quality_score:l.quality_score!=null?E.confidenceAdjustedQuality(l.quality_score,l.confidence):null,
+    raw_quality:l.quality_score,entry_score:l.entry_rank!=null?l.entry_rank*20:null,
+    market_context_score:l.six!=null?l.six.favourable*16.6:null,liquidity_risk:l.liquidity_flag?3:0,
+    portfolio_fit:0,confidence:l.confidence};
+}
+function needsAttention(app){
+  const out=[];
+  app.securities.forEach(s=>{
+    const l=s.latest||{};
+    const recentAlerts=app.alerts.filter(a=>a.security_id===s.id&&!a.read);
+    recentAlerts.forEach(a=>out.push({sec:s,kind:a.type,reason:a.title,pri:a.type==="BAND_CROSSING"?5:a.type==="MATERIAL_EVENT"?4:a.type==="THESIS_GATE"?4:a.type==="DAILY_MOVE"?3:2,ts:a.created_at}));
+    const dsa=daysSince(l.as_of); if(dsa!=null&&dsa>90&&l.quality_score!=null)out.push({sec:s,kind:"STALE",reason:"Full assessment "+dsa+" days old",pri:1});
+    // upcoming earnings
+    app.events.filter(e=>e.security_id===s.id&&e.type==="EARNINGS"&&e.date&&new Date(e.date)>new Date()).forEach(e=>{
+      const dd=Math.ceil((new Date(e.date)-Date.now())/86400000); if(dd<=21)out.push({sec:s,kind:"EARNINGS",reason:"Earnings in "+dd+"d",pri:2}); });
+  });
+  return out.sort((a,b)=>b.pri-a.pri).slice(0,8);
+}
+function Dashboard(){
+  const app=useApp(); const [sample,setSample]=useState(false);
+  const holdings=app.securities.filter(s=>s.holding&&num(s.holding.quantity));
+  const watch=app.securities.filter(s=>s.watchlist);
+  const att=needsAttention(app);
+  const setups=E.rankCandidates(app.securities.filter(s=>s.latest&&s.latest.quality_score!=null).map(candidateFromSec)).slice(0,6);
+  const changes=[]; app.securities.forEach(s=>(s.changelog||[]).forEach(c=>changes.push({...c,sec:s}))); changes.sort((a,b)=>new Date(b.at)-new Date(a.at));
+  const base=app.meta.base_ccy||"NZD";
+  const totalVal=holdings.reduce((sum,s)=>{const v=num(s.holding.quantity)*(num(s.price&&s.price.current)||num(s.holding.avg_cost)||0); const fx=num(s.holding.fx_rate)||1; return sum+v*fx;},0);
+  const roleAlloc={}; holdings.forEach(s=>{const v=num(s.holding.quantity)*(num(s.price&&s.price.current)||num(s.holding.avg_cost)||0)*(num(s.holding.fx_rate)||1);const r=s.role||"OTHER";roleAlloc[r]=(roleAlloc[r]||0)+v;});
+  const roleColors=["var(--ocean)","var(--pounamu-2)","var(--kowhai)","var(--clay)","var(--neutral)","var(--ocean-2)","var(--good)"];
+  const donut=Object.keys(roleAlloc).map((r,i)=>({label:titleCase(r),value:roleAlloc[r],color:roleColors[i%roleColors.length]}));
+
+  return html`<div class="stack">
+    <div class="pagehead"><div class="t"><h1>Te Tirohanga</h1><span class="muted">Overview · a decision board, not a news feed</span></div></div>
+
+    ${app.securities.length===0 && html`<div class="card pad empty">
+      <h3>Start your research memory</h3>
+      <p class="small">Add a security to analyse, or load a worked example to see the whole loop — quality, entry, thesis and change detection — with GOOGL, RMD and XRO.</p>
+      <div class="wrap-row" style=${{justifyContent:"center",marginTop:"10px"}}>
+        <button class="btn" onClick=${()=>go("/securities")}>${icons.plus()} Add a security</button>
+        <button class="btn ghost" disabled=${sample} onClick=${async()=>{setSample(true);await loadSampleData(app);app.notify("Loaded worked example");}}>Load worked example</button>
+      </div></div>`}
+
+    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))"}}>
+      <div class="card pad stack">
+        <div class="between"><h3>Needs attention</h3><span class="tag">Ranked by action</span></div>
+        ${att.length===0?html`<div class="muted small">Nothing pressing. Quiet is good.</div>`:
+          att.map((a,i)=>html`<button key=${i} class="between" style=${{width:"100%",textAlign:"left",background:"transparent",border:0,borderBottom:"1px solid var(--hair)",padding:"8px 0",cursor:"pointer"}} onClick=${()=>go("/securities/"+a.sec.id)}>
+            <div><b class="mono">${secKey(a.sec)}</b><div class="xs muted">${a.reason}</div></div><${Chip} kind=${a.pri>=4?'bad':a.pri>=3?'warn':'neutral'}>${titleCase(a.kind)}</${Chip}></button>`)}
+      </div>
+
+      <div class="card pad stack">
+        <div class="between"><h3>Best current setups</h3><span class="tag">Gates → quality → entry</span></div>
+        ${setups.length===0?html`<div class="muted small">Run a full assessment to rank candidates.</div>`:
+          setups.map((c,i)=>html`<button key=${c.id} class="between" style=${{width:"100%",background:"transparent",border:0,borderBottom:"1px solid var(--hair)",padding:"8px 0",cursor:"pointer"}} onClick=${()=>go("/securities/"+c.id)}>
+            <div style=${{textAlign:"left"}}><b class="mono">${c.name}</b><div class="xs muted">${titleCase(c.sec.role||"—")}</div></div>
+            <div class="row" style=${{gap:"6px"}}>${c.hard_gate_status==="FAIL"&&html`<${Chip} kind="bad">Gate fail</${Chip}>`}<span class="score-pill">Q ${fmtNum(c.raw_quality,0)}</span><${Chip} kind=${statusKind(c.sec.latest&&c.sec.latest.entry_classification)}>${titleCase((c.sec.latest&&c.sec.latest.entry_classification)||"—")}</${Chip}></div></button>`)}
+      </div>
+    </div>
+
+    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))"}}>
+      <div class="card pad stack">
+        <h3>Portfolio</h3>
+        <div class="row" style=${{gap:"20px",flexWrap:"wrap"}}>
+          <div><div class="tag">Total value (${base})</div><div class="mono" style=${{fontSize:"1.5rem",fontFamily:"var(--serif)"}}>${fmtMoney(totalVal,base,0)}</div></div>
+          <div><div class="tag">Holdings</div><div class="mono" style=${{fontSize:"1.5rem",fontFamily:"var(--serif)"}}>${holdings.length}</div></div>
+        </div>
+        ${donut.length?html`<${Donut} data=${donut}/>`:html`<div class="muted small">No holdings yet. Import a broker CSV or add holdings on a security.</div>`}
+        <div><button class="link-btn small" onClick=${()=>go("/portfolio")}>Open portfolio →</button></div>
+      </div>
+
+      <div class="card pad stack">
+        <div class="between"><h3>What changed</h3><span class="tag">Material only</span></div>
+        ${changes.length===0?html`<div class="muted small">Change log is empty. It fills as analyses, prices and events move.</div>`:
+          changes.slice(0,8).map((c,i)=>html`<div key=${i} style=${{borderBottom:"1px solid var(--hair)",padding:"7px 0"}}>
+            <div class="between"><b class="mono small">${secKey(c.sec)}</b><span class="xs muted">${fmtDate(c.at)}</span></div>
+            <div class="wrap-row" style=${{margin:"3px 0"}}>${(c.changes||[]).map((ch,j)=>html`<${Chip} key=${j} kind=${statusKind(ch)}>${titleCase(ch)}</${Chip}>`)}</div>
+            <div class="xs muted">${c.reason}</div></div>`)}
+      </div>
+    </div>
+
+    <div class="card pad stack">
+      <div class="between"><h3>Watchlist</h3><button class="link-btn small" onClick=${()=>go("/watchlists")}>Open →</button></div>
+      ${watch.length===0?html`<div class="muted small">No watched securities yet.</div>`:html`<div class="scroll-x"><${WatchTable} secs=${watch}/></div>`}
+    </div>
+  </div>`;
+}
+
+function WatchTable({secs}){
+  return html`<table class="tbl"><thead><tr><th>Ticker</th><th>Quality</th><th>Entry</th><th>Band</th><th>To next trigger</th><th>Context</th><th>Last analysis</th></tr></thead>
+  <tbody>${secs.map(s=>{const l=s.latest||{};const price=num(s.price&&s.price.current);const band=E.findBand(s.entry_bands||[],price);
+    const bands=[...(s.entry_bands||[])].sort((a,b)=>((a.lower_bound==null?-1e9:a.lower_bound)-(b.lower_bound==null?-1e9:b.lower_bound)));
+    let dist="—"; if(price!=null&&band){ const idx=bands.findIndex(b=>b.name===band.name); const better=bands[idx-1]; if(better&&better.upper_bound!=null)dist=fmtPct((better.upper_bound-price)/price); }
+    return html`<tr key=${s.id} style=${{cursor:"pointer"}} onClick=${()=>go("/securities/"+s.id)}>
+      <td><b class="mono">${secKey(s)}</b></td>
+      <td>${l.quality_score!=null?html`<span class="score-pill">${fmtNum(l.quality_score,0)}</span>`:html`<span class="muted">—</span>`}</td>
+      <td><${Chip} kind=${statusKind(l.entry_classification)}>${titleCase(l.entry_classification||"—")}</${Chip}></td>
+      <td class="mono small">${band?band.name:"—"}</td>
+      <td class="mono small">${dist}</td>
+      <td>${l.six?html`<${Chip} kind=${statusKind(l.six.favourable>=4?'STRONG_TIMING':l.six.favourable>=2?'ACCEPTABLE_CONSERVATIVE_SIZE':'WATCH_WAIT')}>${l.six.favourable}/6</${Chip}>`:html`<span class="muted">—</span>`}</td>
+      <td class="xs muted">${l.as_of?fmtDate(l.as_of):"—"}</td></tr>`; })}</tbody></table>`;
+}
+
+/* ============================================================ Securities list */
+function Securities(){
+  const app=useApp(); const [adding,setAdding]=useState(false); const [q,setQ]=useState("");
+  const list=app.securities.filter(s=>!q||secKey(s).toLowerCase().includes(q.toLowerCase())||(s.name||"").toLowerCase().includes(q.toLowerCase()));
+  return html`<div class="stack">
+    <div class="pagehead"><div class="between"><div class="t"><h1>Securities</h1><span class="muted">Master list · exchange-aware</span></div><button class="btn" onClick=${()=>setAdding(true)}>${icons.plus()} Add</button></div></div>
+    <div class="card pad"><label class="f"><input placeholder="Search ticker or name…" value=${q} onInput=${e=>setQ(e.target.value)}/></label></div>
+    ${list.length===0?html`<div class="card pad empty"><h3>No securities</h3><p class="small">Add one manually or import a portfolio CSV.</p></div>`:
+      html`<div class="card scroll-x"><table class="tbl"><thead><tr><th>Ticker</th><th>Name</th><th>Type</th><th>Quality</th><th>Entry</th><th>Status</th><th>Price</th></tr></thead>
+      <tbody>${list.sort((a,b)=>secKey(a).localeCompare(secKey(b))).map(s=>{const l=s.latest||{};return html`<tr key=${s.id} style=${{cursor:"pointer"}} onClick=${()=>go("/securities/"+s.id)}>
+        <td><b class="mono">${secKey(s)}</b></td><td>${s.name||"—"} ${s.example&&html`<span class="kbadge">example</span>`}</td>
+        <td class="small muted">${titleCase(s.asset_type||"—")}</td>
+        <td>${l.quality_score!=null?html`<span class="score-pill">${fmtNum(l.quality_score,0)}</span>`:"—"}</td>
+        <td><${Chip} kind=${statusKind(l.entry_classification)}>${titleCase(l.entry_classification||"—")}</${Chip}></td>
+        <td class="pill-row">${s.watchlist&&html`<${Chip} kind="neutral">Watch</${Chip}>`}${s.holding&&num(s.holding.quantity)&&html`<${Chip} kind="solid">Held</${Chip}>`}</td>
+        <td class="mono">${s.price&&s.price.current!=null?fmtMoney(num(s.price.current),s.currency,2):"—"}</td></tr>`; })}</tbody></table></div>`}
+    ${adding&&html`<${SecurityForm} onClose=${()=>setAdding(false)}/>`}
+  </div>`;
+}
+function SecurityForm({onClose,initial}){
+  const app=useApp(); const [f,setF]=useState(initial||{exchange:"NASDAQ",asset_type:"STOCK",currency:"USD",watchlist:true});
+  const up=(k,v)=>setF(o=>({...o,[k]:v}));
+  return html`<${Modal} title=${initial?"Edit security":"Add security"} onClose=${onClose}>
+    <div class="form-grid">
+      <${Field} label="Ticker"><input value=${f.ticker||""} onInput=${e=>up("ticker",e.target.value.toUpperCase())}/></${Field}>
+      <${Field} label="Exchange"><${Sel} value=${f.exchange} onChange=${v=>up("exchange",v)} options=${EXCHANGES}/></${Field}>
+      <${Field} label="Company / asset name"><input value=${f.name||""} onInput=${e=>up("name",e.target.value)}/></${Field}>
+      <${Field} label="Currency"><input value=${f.currency||""} onInput=${e=>up("currency",e.target.value.toUpperCase())}/></${Field}>
+      <${Field} label="Asset type"><${Sel} value=${f.asset_type} onChange=${v=>up("asset_type",v)} options=${ASSET_TYPES}/></${Field}>
+      <${Field} label="Sector / industry"><input value=${f.sector||""} onInput=${e=>up("sector",e.target.value)}/></${Field}>
+      <${Field} label="Role"><${Sel} value=${f.role} onChange=${v=>up("role",v)} options=${ROLES} placeholder="—" labeler=${r=>ROLE_LABEL[r]||titleCase(r)}/></${Field}>
+      <${Field} label="Tier"><${Sel} value=${f.tier} onChange=${v=>up("tier",v)} options=${TIERS} placeholder="—"/></${Field}>
+    </div>
+    <div style=${{marginTop:"12px"}}><${Field} label="What it does / how it makes money"><textarea value=${f.summary||""} onInput=${e=>up("summary",e.target.value)}/></${Field}></div>
+    <div class="wrap-row" style=${{marginTop:"12px"}}>
+      <label class="row small"><input type="checkbox" checked=${!!f.watchlist} onChange=${e=>up("watchlist",e.target.checked)}/> Add to watchlist</label>
+    </div>
+    <div class="between" style=${{marginTop:"16px"}}>
+      <span class="xs muted">Canonical key: <b class="mono">${(f.exchange||"?")+":"+(f.ticker||"?")}</b></span>
+      <button class="btn" disabled=${!f.ticker} onClick=${async()=>{const rec=await app.saveSecurity(f);onClose();go("/securities/"+rec.id);}}>Save</button>
+    </div>
+  </${Modal}>`;
+}
+
+/* ============================================================ Security detail (core screen) */
+function SecurityDetail({id}){
+  const app=useApp(); const s=app.securities.find(x=>x.id===id);
+  const [tab,setTab]=useState("analysis"); const [modal,setModal]=useState(null);
+  if(!s)return html`<div class="card pad empty"><h3>Not found</h3><button class="btn ghost" onClick=${()=>go("/securities")}>Back</button></div>`;
+  const l=s.latest||{}; const price=num(s.price&&s.price.current);
+  const snaps=app.snapshots.filter(x=>x.security_id===s.id).sort((a,b)=>new Date(b.as_of)-new Date(a.as_of));
+  const secEvents=app.events.filter(e=>e.security_id===s.id).sort((a,b)=>new Date(b.date||b.created_at)-new Date(a.date||a.created_at));
+  const move=s.price?E.dailyMovePct(num(s.price.prev_close),price):null;
+  return html`<div class="stack">
+    <button class="link-btn small row" onClick=${()=>go("/securities")}>${icons.back()} All securities</button>
+    <!-- header -->
+    <div class="card pad stack">
+      <div class="between">
+        <div><div class="row" style=${{gap:"8px",alignItems:"baseline"}}><h1 class="mono">${secKey(s)}</h1>${s.example&&html`<span class="kbadge">example</span>`}</div>
+          <div class="muted">${s.name||"—"} · ${s.currency||""} · ${titleCase(s.asset_type||"")}${s.sector?" · "+s.sector:""}</div></div>
+        <div style=${{textAlign:"right"}}>
+          <div class="mono" style=${{fontSize:"1.5rem"}}>${price!=null?fmtMoney(price,s.currency,2):"—"}</div>
+          <div class="row" style=${{justifyContent:"flex-end",gap:"6px"}}>${move!=null&&html`<span class=${move>=0?'delta-up':'delta-dn'}>${fmtPct(move)}</span>`}<${Freshness} p=${(s.price&&s.price.freshness)||'UNKNOWN'}/></div>
+        </div>
+      </div>
+      <div class="wrap-row">
+        ${s.role&&html`<${Chip} kind="neutral" title="Portfolio role">${ROLE_LABEL[s.role]||titleCase(s.role)}</${Chip}>`}
+        ${s.tier&&html`<${Chip} kind="neutral">${titleCase(s.tier)}</${Chip}>`}
+        ${s.stage&&html`<${Chip} kind="neutral">${titleCase(s.stage)}</${Chip}>`}
+        ${s.watchlist&&html`<${Chip} kind="neutral">Watchlist</${Chip}>`}
+        ${s.holding&&num(s.holding.quantity)&&html`<${Chip} kind="solid">Held ${fmtNum(num(s.holding.quantity),0)}</${Chip}>`}
+        <span class="xs muted">Framework v${(app.frameworks.find(f=>f.id===(l.framework_version_id))||{}).version||app.activeFw.version||1} · ${app.activeFw.name}</span>
+      </div>
+      ${l.liquidity_flag&&html`<div class="banner bad"><b>High liquidity risk.</b> Trading or underlying liquidity scored below 2 — size cautiously regardless of the total score.</div>`}
+      <div class="wrap-row">
+        <button class="btn sm" onClick=${()=>setModal("analysis")}>${icons.spark()} Full assessment</button>
+        <button class="btn sm ghost" onClick=${()=>setModal("price")}>Update price</button>
+        <button class="btn sm ghost" onClick=${()=>setModal("thesis")}>Edit thesis</button>
+        <button class="btn sm ghost" onClick=${()=>setModal("bands")}>Entry bands</button>
+        <button class="btn sm ghost" onClick=${()=>setModal("event")}>Log event</button>
+        <button class="btn sm ghost" onClick=${()=>setModal("edit")}>Edit</button>
+      </div>
+    </div>
+
+    <!-- decision strip -->
+    <div class="card pad">
+      <div class="decision-strip">
+        <div class="dcell"><div class="lab">Quality</div>
+          <div class="big">${l.quality_score!=null?fmtNum(l.quality_score,0)+" / 100":"—"}</div>
+          <div class="sub">${l.core_total!=null?"Core "+l.core_total+"/40 · "+titleCase(l.core_band):"No assessment yet"}</div></div>
+        <div class="dcell"><div class="lab">Entry</div>
+          <div class="big">${titleCase(l.entry_classification||"—")}</div>
+          <div class="sub">${l.entry_band_name||(price!=null?"No band matched":"No price")}</div></div>
+        <div class="dcell"><div class="lab">Thesis</div>
+          <div class="big">${titleCase((s.thesis&&s.thesis.active&&s.thesis.active.status)||l.thesis_status||"—")}</div>
+          <div class="sub">${l.decision_zone?"Zone: "+titleCase(l.decision_zone):"—"}</div></div>
+      </div>
+      <div class="banner" style=${{marginTop:"12px"}}><span class="muted small">Quality and entry are shown separately on purpose: a falling price can improve entry without changing business quality — and a cheap price never rescues a failed quality gate.</span></div>
+    </div>
+
+    <!-- tabs -->
+    <div class="wrap-row">${[["analysis","Framework"],["context","Market context"],["thesis","Thesis"],["bands","Entry & price"],["events","Events"],["log","Change log"],["ai","AI research"]].map(t=>html`<button key=${t[0]} class="btn sm ${tab===t[0]?'':'ghost'}" onClick=${()=>setTab(t[0])}>${t[1]}</button>`)}</div>
+
+    ${tab==="analysis"&&html`<${DetailFramework} s=${s} snaps=${snaps}/>`}
+    ${tab==="context"&&html`<${DetailContext} s=${s}/>`}
+    ${tab==="thesis"&&html`<${DetailThesis} s=${s}/>`}
+    ${tab==="bands"&&html`<${DetailBands} s=${s} onEdit=${()=>setModal("bands")}/>`}
+    ${tab==="events"&&html`<${DetailEvents} s=${s} events=${secEvents}/>`}
+    ${tab==="log"&&html`<${DetailLog} s=${s}/>`}
+    ${tab==="ai"&&html`<${DetailAI} s=${s}/>`}
+
+    ${modal==="analysis"&&html`<${AnalysisForm} s=${s} onClose=${()=>setModal(null)}/>`}
+    ${modal==="price"&&html`<${PriceForm} s=${s} onClose=${()=>setModal(null)}/>`}
+    ${modal==="thesis"&&html`<${ThesisForm} s=${s} onClose=${()=>setModal(null)}/>`}
+    ${modal==="bands"&&html`<${BandsForm} s=${s} onClose=${()=>setModal(null)}/>`}
+    ${modal==="event"&&html`<${EventForm} s=${s} onClose=${()=>setModal(null)}/>`}
+    ${modal==="edit"&&html`<${SecurityForm} initial=${s} onClose=${()=>setModal(null)}/>`}
+  </div>`;
+}
+
+function DetailFramework({s,snaps}){
+  const app=useApp(); const cur=snaps[0]; const prev=snaps[1];
+  if(!cur)return html`<div class="card pad empty"><h3>No analysis yet</h3><p class="small">Run a full assessment to score each framework dimension with evidence and confidence.</p></div>`;
+  const [open,setOpen]=useState({});
+  const dims=cur.dimensions||[];
+  return html`<div class="stack">
+    <div class="card pad stack">
+      <div class="between"><h3>Framework dimensions</h3><span class="tag">${cur.analysis_type||"FULL_ASSESSMENT"} · ${fmtDate(cur.as_of)}</span></div>
+      ${cur.gate_overall==="FAIL"&&html`<div class="banner bad"><b>Hard gate failed.</b> A failed quality gate cannot be rescued by a cheap price or favourable market context.</div>`}
+      <div class="stack" style=${{gap:"8px"}}>
+        ${dims.map((d,i)=>{const pd=(prev&&prev.dimensions||[]).find(x=>x.key===d.key);const delta=pd&&d.score!=null&&pd.score!=null?d.score-pd.score:null;const isOpen=open[d.key];
+          return html`<div class="dim" key=${d.key}>
+            <div class="hd" onClick=${()=>setOpen(o=>({...o,[d.key]:!o[d.key]}))}>
+              <div style=${{flex:1}}><b>${d.label}</b> ${delta!=null&&delta!==0&&html`<span class=${delta>0?'delta-up':'delta-dn'}> ${delta>0?'+':''}${delta}</span>`}</div>
+              <span class="score-pill">${d.score!=null?d.score+"/5":"—"}</span>
+              <${Chip} kind=${d.score==null?'unknown':d.score>=4?'good':d.score>=3?'warn':'bad'}>${d.score==null?"Unknown":d.score>=4?"Pass":d.score>=3?"Review":"Weak"}</${Chip}>
+              <span style=${{width:"16px",display:"inline-flex",transform:isOpen?"rotate(90deg)":""}}>${icons.chev()}</span>
+            </div>
+            ${isOpen&&html`<div class="bd stack" style=${{gap:"6px"}}>
+              <div>${d.rationale||html`<span class="muted">No rationale recorded.</span>`}</div>
+              ${d.confidence&&html`<div class="xs muted">Confidence: ${titleCase(d.confidence)}</div>`}
+              ${(d.missing&&d.missing.length)?html`<div class="xs" style=${{color:"var(--kowhai)"}}>Missing: ${d.missing.join(", ")}</div>`:""}
+            </div>`}
+          </div>`; })}
+      </div>
+    </div>
+    <div class="card pad stack">
+      <h3>Core scorecard (40-point)</h3>
+      <div class="scroll-x"><table class="tbl"><thead><tr><th>Category</th><th>Score</th></tr></thead><tbody>
+        ${CORE_A_CATS.map(c=>html`<tr key=${c[0]}><td>${c[1]}</td><td class="mono">${(cur.core_scores&&cur.core_scores[c[0]]!=null)?cur.core_scores[c[0]]+"/5":"—"}</td></tr>`)}
+        <tr><td><b>Total</b></td><td class="mono"><b>${cur.core_total!=null?cur.core_total+"/40":"—"}</b></td></tr>
+      </tbody></table></div>
+      <div class="wrap-row"><${Chip} kind=${statusKind(cur.core_band)}>${E.CORE_BAND_LABELS[cur.core_band]||"—"}</${Chip}>${cur.liquidity_flag&&html`<${Chip} kind="bad">High liquidity risk</${Chip}>`}</div>
+    </div>
+    <div class="card pad stack">
+      <h3>Hard gates</h3>
+      <div class="stack" style=${{gap:"4px"}}>${(cur.gates||[]).map(g=>html`<div class="between" key=${g.name} style=${{padding:"6px 0",borderBottom:"1px solid var(--hair)"}}><span class="small">${g.label||titleCase(g.name)}</span><${St} v=${g.status}/></div>`)}</div>
+      <div class="between"><b>Overall</b><${St} v=${cur.gate_overall}/></div>
+    </div>
+    ${snaps.length>1&&html`<div class="card pad stack"><h3>Snapshot history</h3>${snaps.map(sn=>html`<div key=${sn.id} class="between" style=${{padding:"6px 0",borderBottom:"1px solid var(--hair)"}}><span class="small">${fmtDate(sn.as_of)} · Q ${fmtNum(sn.quality_score,0)}</span><${Chip} kind=${statusKind(sn.entry_classification)}>${titleCase(sn.entry_classification||"—")}</${Chip}></div>`)}</div>`}
+  </div>`;
+}
+
+function DetailContext({s}){
+  const l=s.latest||{}; const mc=l.market_context;
+  if(!mc)return html`<div class="card pad empty"><h3>No market-context read</h3><p class="small">Temporal, Structural and Irrational lenses are captured in a full assessment.</p></div>`;
+  const cards=[["Temporal",mc.temporal,"Is today the right time in the earnings/price cycle?"],["Structural",mc.structural,"Are the thesis drivers durable or cyclical?"],["Irrational",mc.irrational,"Is the market pricing fear, greed, or real change?"]];
+  return html`<div class="stack">
+    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))"}}>
+      ${cards.map(c=>html`<div class="card pad stack" key=${c[0]} style=${{gap:"6px"}}><div class="tag">${c[0]}</div><${St} v=${c[1]}/><div class="xs muted">${c[2]}</div></div>`)}
+    </div>
+    <div class="card pad stack">
+      <div class="between"><h3>Six-signal timing</h3><${Chip} kind=${statusKind(l.six&&(l.six.favourable>=4?'STRONG_TIMING':l.six.favourable>=2?'ACCEPTABLE_CONSERVATIVE_SIZE':'WATCH_WAIT'))}>${l.six?l.six.favourable+"/6 favourable":"—"}</${Chip}></div>
+      <div class="stack" style=${{gap:"4px"}}>${SIGNAL_LABELS.map((sig,i)=>html`<div key=${i} class="between" style=${{padding:"6px 0",borderBottom:"1px solid var(--hair)"}}><span class="small">${sig}</span><${St} v=${(mc.signals||[])[i]}/></div>`)}</div>
+      <div class="banner"><span class="small">${titleCase(l.integration||"")||"Market context can improve entry; it cannot rescue a broken business."}</span></div>
+    </div>
+    <div class="card pad stack"><h3>Decision zone</h3>
+      <div class="zone">
+        <div class="axl"></div><div class="axl">Flows improving</div><div class="axl">Flows deteriorating</div>
+        <div class="axl">High quality</div><div class="cell ${l.decision_zone==='BEST'?'on':''}">Best</div><div class="cell ${l.decision_zone==='PATIENCE'?'on':''}">Patience</div>
+        <div class="axl">Low quality</div><div class="cell ${l.decision_zone==='TRADING_ONLY'?'on':''}">Trading-only</div><div class="cell ${l.decision_zone==='AVOID'?'on':''}">Avoid</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function DetailThesis({s}){
+  const t=s.thesis; if(!t||!t.active)return html`<div class="card pad empty"><h3>No thesis</h3><p class="small">Capture why you'd own this, what must be true, and what would prove you wrong.</p></div>`;
+  const a=t.active;
+  return html`<div class="stack">
+    <div class="card pad stack">
+      <div class="between"><h3>Current thesis</h3><span class="tag">v${a.version} · ${fmtDate(a.created_at)}</span></div>
+      ${a.narrative&&html`<p style=${{margin:0}}>${a.narrative}</p>`}
+      <div class="kv"><span class="k">Fundamental reason</span><span class="v">${a.fundamental_reason||"—"}</span></div>
+      <div class="kv"><span class="k">Supporting flow condition</span><span class="v">${a.supporting_flow_condition||"—"}</span></div>
+      <div class="kv"><span class="k">Main risk (falsifier)</span><span class="v">${a.main_risk||"—"}</span></div>
+      <div class="kv"><span class="k">Type</span><span class="v">${titleCase(a.thesis_type||"—")}</span></div>
+      <div class="kv"><span class="k">Consensus position</span><span class="v">${titleCase(a.consensus_position||"—")}</span></div>
+      <div class="kv"><span class="k">Time horizon</span><span class="v">${a.intended_time_horizon||"—"}</span></div>
+    </div>
+    <div class="card pad stack">
+      <h3>Monitored proof points & falsifiers</h3>
+      ${(!s.thesis_gates||!s.thesis_gates.length)?html`<div class="muted small">No gates yet. Add measurable proof/damage thresholds when editing the thesis.</div>`:
+        s.thesis_gates.map((g,i)=>html`<div key=${i} class="stack" style=${{gap:"3px",padding:"8px 0",borderBottom:"1px solid var(--hair)"}}>
+          <div class="between"><b>${g.metric_name}</b><${St} v=${g.state}/></div>
+          <div class="xs muted">Positive: ${g.positive_condition||"—"} · Neutral: ${g.neutral_condition||"—"} · Damage: ${g.damage_condition||"—"}</div>
+          <div class="xs">Current: <b class="mono">${g.current_value!=null&&g.current_value!==""?g.current_value:"unknown"}</b></div>
+        </div>`)}
+    </div>
+    ${t.versions&&t.versions.length>1&&html`<div class="card pad stack"><h3>Thesis history</h3>${[...t.versions].reverse().map(v=>html`<div key=${v.id} class="between" style=${{padding:"6px 0",borderBottom:"1px solid var(--hair)"}}><span class="small">v${v.version} — ${v.fundamental_reason||"(no reason)"}</span><span class="xs muted">${fmtDate(v.created_at)}</span></div>`)}</div>`}
+  </div>`;
+}
+
+function DetailBands({s,onEdit}){
+  const price=num(s.price&&s.price.current);
+  return html`<div class="stack">
+    <div class="card pad stack">
+      <div class="between"><h3>Entry bands</h3><button class="btn sm ghost" onClick=${onEdit}>Edit bands</button></div>
+      <${EntryBandChart} bands=${s.entry_bands} price=${price} ccy=${s.currency}/>
+      <div class="scroll-x"><table class="tbl"><thead><tr><th>Band</th><th>Range (${s.currency||""})</th><th>Stance</th><th>Rationale</th></tr></thead><tbody>
+        ${(s.entry_bands||[]).map((b,i)=>html`<tr key=${i}><td>${b.name}</td><td class="mono">${b.lower_bound!=null?fmtNum(b.lower_bound,2):"↓"} – ${b.upper_bound!=null?fmtNum(b.upper_bound,2):"↑"}</td><td><${Chip} kind=${statusKind(b.stance)}>${titleCase(b.stance)}</${Chip}></td><td class="small muted">${b.rationale||"—"}</td></tr>`)}
+      </tbody></table></div>
+      <div class="xs muted">Entry bands are review thresholds — not orders and not price targets.</div>
+    </div>
+    <div class="card pad stack">
+      <h3>Price history</h3>
+      <${PriceChart} history=${(s.price&&s.price.history)||[]} bands=${s.entry_bands}/>
+    </div>
+  </div>`;
+}
+
+function DetailEvents({s,events}){
+  return html`<div class="card pad stack">
+    <h3>Event timeline</h3>
+    ${events.length===0?html`<div class="muted small">No events logged.</div>`:
+      events.map(e=>html`<div key=${e.id} class="stack" style=${{gap:"4px",padding:"9px 0",borderBottom:"1px solid var(--hair)"}}>
+        <div class="between"><div class="row"><${Chip} kind=${e.materiality>=4?'bad':e.materiality>=3?'warn':'neutral'}>M${e.materiality||"?"}/5</${Chip}><b>${titleCase(e.type)}</b></div><span class="xs muted">${fmtDate(e.date||e.created_at)}</span></div>
+        ${e.headline&&html`<div class="small">${e.headline}</div>`}
+        ${e.affected_dimensions&&e.affected_dimensions.length&&html`<div class="wrap-row">${e.affected_dimensions.map((d,i)=>html`<${Chip} key=${i} kind="neutral">${titleCase(d)}</${Chip}>`)}</div>`}
+        ${e.source_url&&html`<a class="xs" href=${e.source_url} target="_blank" rel="noopener">Source ${e.source_tier?"· tier "+e.source_tier:""} ${e.verified===false?"· unverified secondary":""}</a>`}
+      </div>`)}
+  </div>`;
+}
+
+function DetailLog({s}){
+  const log=(s.changelog||[]).slice().reverse();
+  if(!log.length)return html`<div class="card pad empty"><h3>No changes recorded</h3><p class="small">Change log fills as analyses, prices, theses and events move.</p></div>`;
+  return html`<div class="card scroll-x"><table class="tbl"><thead><tr><th>Date</th><th>Quality Δ</th><th>Entry Δ</th><th>Thesis Δ</th><th>Reason</th></tr></thead><tbody>
+    ${log.map((c,i)=>html`<tr key=${i}><td class="xs">${fmtDate(c.at)}</td>
+      <td>${c.quality_changed?html`<${Chip} kind=${(c.changes||[]).includes('QUALITY_IMPROVEMENT')?'good':'bad'}>Yes</${Chip}>`:html`<span class="muted">—</span>`}</td>
+      <td>${c.entry_changed?html`<${Chip} kind="warn">Yes</${Chip}>`:html`<span class="muted">—</span>`}</td>
+      <td>${(c.changes||[]).some(x=>x.includes('THESIS'))?html`<${Chip} kind="warn">Yes</${Chip}>`:html`<span class="muted">—</span>`}</td>
+      <td class="small">${c.reason}</td></tr>`)}
+  </tbody></table></div>`;
+}
+
+/* ============================================================ AI research (sample) */
+function DetailAI({s}){
+  const app=useApp(); const [out,setOut]=useState(null); const [busy,setBusy]=useState(null); const [err,setErr]=useState(null);
+  if(!app.hasSample)return html`<div class="card pad empty"><h3>AI research is optional and off</h3><p class="small">The deterministic scores above never need AI. If you open this page in Claude, AI-assisted interpretation (business summary, structural-vs-cyclical, red-team) becomes available and runs on your own Claude plan — no API key. It interprets evidence; it never sets the scores.</p></div>`;
+  const run=async(kind)=>{
+    setBusy(kind);setErr(null);setOut(null);
+    try{
+      const sample=await getSample(); if(!sample){setErr("AI unavailable in this view.");setBusy(null);return;}
+      const ctx=aiContext(s,app.meta.redact_positions);
+      const prompts={
+        summary:{instr:"Summarise this company's business model and how it makes money in 3-4 sentences, and list its main economic exposures.",schema:'{"summary":"string","economic_exposures":["string"]}'},
+        structural:{instr:"Classify the thesis drivers as structural vs cyclical. Explain briefly.",schema:'{"verdict":"STRUCTURAL|CYCLICAL|MIXED|UNKNOWN","reasoning":"string","structural_drivers":["string"],"cyclical_drivers":["string"]}'},
+        redteam:{instr:"Red-team this investment thesis. What would make it wrong? Be specific and evidence-oriented.",schema:'{"key_risks":["string"],"what_would_make_it_wrong":["string"],"missing_information":["string"]}'},
+      };
+      const p=prompts[kind];
+      const input="You are an investment research assistant. Interpret only the evidence given; if something is not provided, say it is unknown rather than inventing it. Return ONLY JSON matching: "+p.schema+"\n\nTask: "+p.instr+"\n\nSecurity data:\n"+ctx;
+      const res=await sample.json(input,{modelTier:"default",cache:true});
+      setOut({kind,data:res});
+    }catch(e){ setErr((e&&e.message)||"AI request failed."); }
+    setBusy(null);
+  };
+  return html`<div class="stack">
+    <div class="aibox stack">
+      <div class="between"><b>AI-assisted interpretation</b><span class="xs muted">Runs on your Claude plan · consent-gated</span></div>
+      <div class="wrap-row">
+        <button class="btn sm" disabled=${busy} onClick=${()=>run("summary")}>${busy==="summary"?"Thinking…":"Summarise business"}</button>
+        <button class="btn sm" disabled=${busy} onClick=${()=>run("structural")}>${busy==="structural"?"Thinking…":"Structural vs cyclical"}</button>
+        <button class="btn sm" disabled=${busy} onClick=${()=>run("redteam")}>${busy==="redteam"?"Thinking…":"Red-team thesis"}</button>
+      </div>
+      <div class="xs muted">AI interprets evidence and never sets the deterministic scores. ${app.meta.redact_positions?"Position sizes are redacted from AI context.":""}</div>
+    </div>
+    ${err&&html`<div class="banner bad small">${err}</div>`}
+    ${out&&html`<div class="card pad"><pre style=${{whiteSpace:"pre-wrap",fontFamily:"var(--mono)",fontSize:".8rem",margin:0}}>${JSON.stringify(out.data,null,2)}</pre></div>`}
+  </div>`;
+}
+function aiContext(s,redact){
+  const l=s.latest||{}; const t=s.thesis&&s.thesis.active;
+  const o={ticker:secKey(s),name:s.name,sector:s.sector,asset_type:s.asset_type,summary:s.summary,
+    quality_score:l.quality_score,entry:l.entry_classification,thesis_status:l.thesis_status,
+    thesis:t?{fundamental_reason:t.fundamental_reason,main_risk:t.main_risk,type:t.thesis_type}:null,
+    market_context:l.market_context, price:s.price?{current:s.price.current}:null};
+  if(!redact&&s.holding)o.holding=s.holding;
+  return JSON.stringify(o,null,2);
+}
+
+/* continues — forms, other screens, app root */
+/* ============================================================ Analysis form */
+function AnalysisForm({s,onClose}){
+  const app=useApp(); const fw=app.activeFw;
+  const prev=app.snapshots.filter(x=>x.security_id===s.id).sort((a,b)=>new Date(b.as_of)-new Date(a.as_of))[0];
+  const [dimB,setDimB]=useState({}); const [rationale,setRationale]=useState({});
+  const [coreA,setCoreA]=useState({}); const [gates,setGates]=useState({});
+  const [mc,setMc]=useState({temporal:"",structural:"",irrational:"",signals:["","","","","",""]});
+  const [flow,setFlow]=useState("NEUTRAL"); const [confidence,setConfidence]=useState("MEDIUM");
+  const [summary,setSummary]=useState(""); const [research,setResearch]=useState("");
+  const derived=deriveSnapshot({dimB:mapNums(dimB),coreA:mapNums(coreA),gates,temporal:mc.temporal,structural:mc.structural,irrational:mc.irrational,signals:mc.signals,flow_condition:flow,confidence},fw,s);
+  const save=async()=>{
+    const dims=(fw.dimensions||PROFILE_B_DIMS).map(d=>({key:d.key,label:d.label,score:num(dimB[d.key]),rationale:rationale[d.key]||"",confidence}));
+    const snap={security_id:s.id,framework_version_id:fw.id,analysis_type:"FULL_ASSESSMENT",as_of:nowIso(),
+      quality_score:derived.quality_score,dimensions:dims,
+      core_scores:mapNums(coreA),core_total:derived.core_total,core_band:derived.core_band,liquidity_flag:derived.liquidity_flag,
+      gates:derived.gates,gate_overall:derived.gate_overall,
+      market_context:{temporal:mc.temporal,structural:mc.structural,irrational:mc.irrational,signals:mc.signals},
+      decision_zone:derived.decision_zone,entry_classification:derived.entry_stance,entry_band_name:derived.entry_band_name,
+      thesis_status:(s.thesis&&s.thesis.active&&s.thesis.active.status)||"INTACT",confidence,summary,
+      research_needed:research?research.split("\n").filter(Boolean):[]};
+    const rec=await app.saveSnapshot(snap);
+    // build latest summary + change detection vs prev
+    const newLatest={quality_score:derived.quality_score,core_total:derived.core_total,core_band:derived.core_band,
+      entry_classification:derived.entry_stance,entry_rank:E.entryRank(derived.entry_stance),entry_band_name:derived.entry_band_name,
+      thesis_status:snap.thesis_status,decision_zone:derived.decision_zone,gate_overall:derived.gate_overall,liquidity_flag:derived.liquidity_flag,
+      six:derived.six,integration:derived.integration,market_context:snap.market_context,confidence,framework_version_id:fw.id,snapshot_id:rec.id,as_of:snap.as_of};
+    const change=E.classifyChange(
+      prev?{quality_score:prev.quality_score,entry_classification:prev.entry_classification,thesis_status:prev.thesis_status}:null,
+      {quality_score:derived.quality_score,entry_classification:derived.entry_stance,thesis_status:snap.thesis_status});
+    const cl=(s.changelog||[]).slice(-99);
+    if(!change.changes.includes("NO_MATERIAL_CHANGE")||!prev){
+      cl.push({at:nowIso(),changes:change.changes,quality_changed:change.quality_changed,entry_changed:change.entry_changed,
+        reason:prev?deltaReason(change,prev,derived):"First full assessment recorded."});
+    }
+    await app.saveSecurity({...s,latest:newLatest,changelog:cl,last_band:derived.entry_band_name});
+    if(change.quality_changed){
+      await app.pushAlert({security_id:s.id,security_key:secKey(s),type:"QUALITY_CHANGE",subtype:change.changes.join(","),
+        title:secKey(s)+" · quality "+(change.changes.includes("QUALITY_IMPROVEMENT")?"improved":"changed"),
+        old_state:prev?fmtNum(prev.quality_score,0):"—",new_state:fmtNum(derived.quality_score,0),
+        quality_changed:true,entry_changed:change.entry_changed,rationale:deltaReason(change,prev,derived),next_action:"REASSESS"});
+    }
+    app.notify("Assessment saved"); onClose();
+  };
+  return html`<${Modal} title=${"Full assessment · "+secKey(s)} onClose=${onClose} wide=${true}>
+    <div class="stack">
+      <div class="banner small">Score each dimension 0–5 from the evidence. Leave blank if unknown — the app reports a partial assessment rather than inventing a number.</div>
+      <h4>Business quality (Profile B)</h4>
+      <div class="stack" style=${{gap:"8px"}}>
+        ${(fw.dimensions||PROFILE_B_DIMS).map(d=>html`<div key=${d.key} class="stack" style=${{gap:"5px",borderBottom:"1px solid var(--hair)",paddingBottom:"8px"}}>
+          <div class="between"><div><b>${d.label}</b> <span class="xs muted">(w ${d.weight})</span><div class="xs muted">${d.purpose}</div></div>
+            <${Sel} value=${dimB[d.key]} onChange=${v=>setDimB(o=>({...o,[d.key]:v}))} options=${["0","1","2","3","4","5"]} placeholder="—"/></div>
+          <input class="f" placeholder="Rationale / evidence…" value=${rationale[d.key]||""} onInput=${e=>setRationale(o=>({...o,[d.key]:e.target.value}))} style=${{padding:"7px 9px",border:"1px solid var(--hair-2)",borderRadius:"8px",background:"var(--raise)",color:"var(--ink)",fontFamily:"inherit",fontSize:".85rem"}}/>
+        </div>`)}
+      </div>
+      <div class="banner"><b>Live quality:</b> ${derived.quality_score!=null?fmtNum(derived.quality_score,0)+"/100":"—"} ${!derived.quality_complete&&derived.quality_missing.length?html`<span class="xs" style=${{color:"var(--kowhai)"}}> · partial (${derived.quality_missing.length} missing)</span>`:""}</div>
+
+      <h4>Hard gates</h4>
+      <div class="form-grid">${(fw.gates||DEFAULT_GATES).map(g=>html`<${Field} key=${g.key} label=${g.label}><${Sel} value=${gates[g.key]} onChange=${v=>setGates(o=>({...o,[g.key]:v}))} options=${GATE_STATUS} placeholder="Unknown"/></${Field}>`)}</div>
+      <div class="wrap-row"><b class="small">Overall gate:</b><${St} v=${derived.gate_overall}/></div>
+
+      <h4>Core 40-point scorecard</h4>
+      <div class="form-grid">${CORE_A_CATS.map(c=>html`<${Field} key=${c[0]} label=${c[1]}><${Sel} value=${coreA[c[0]]} onChange=${v=>setCoreA(o=>({...o,[c[0]]:v}))} options=${["1","2","3","4","5"]} placeholder="—"/></${Field}>`)}</div>
+      <div class="wrap-row"><b class="small">Total ${derived.core_total}/40</b><${Chip} kind=${statusKind(derived.core_band)}>${E.CORE_BAND_LABELS[derived.core_band]}</${Chip}>${derived.liquidity_flag&&html`<${Chip} kind="bad">High liquidity risk</${Chip}>`}</div>
+
+      <h4>Market context</h4>
+      <div class="form-grid">
+        <${Field} label="Temporal"><${Sel} value=${mc.temporal} onChange=${v=>setMc(o=>({...o,temporal:v}))} options=${TEMPORAL} placeholder="—"/></${Field}>
+        <${Field} label="Structural"><${Sel} value=${mc.structural} onChange=${v=>setMc(o=>({...o,structural:v}))} options=${STRUCTURAL} placeholder="—"/></${Field}>
+        <${Field} label="Irrational"><${Sel} value=${mc.irrational} onChange=${v=>setMc(o=>({...o,irrational:v}))} options=${IRRATIONAL} placeholder="—"/></${Field}>
+        <${Field} label="Flow condition"><${Sel} value=${flow} onChange=${setFlow} options=${FLOW_CONDITIONS}/></${Field}>
+      </div>
+      <div class="stack" style=${{gap:"5px"}}>${SIGNAL_LABELS.map((sig,i)=>html`<div key=${i} class="between"><span class="small">${i+1}. ${sig}</span><${Sel} value=${mc.signals[i]} onChange=${v=>setMc(o=>{const s2=[...o.signals];s2[i]=v;return{...o,signals:s2};})} options=${SIGNAL_VALUES} placeholder="—"/></div>`)}</div>
+      <div class="wrap-row"><b class="small">Timing:</b><${Chip} kind=${statusKind(derived.six.favourable>=4?'STRONG_TIMING':derived.six.favourable>=2?'ACCEPTABLE_CONSERVATIVE_SIZE':'WATCH_WAIT')}>${derived.six.favourable}/6 favourable</${Chip}><span class="xs muted">${titleCase(derived.integration)}</span></div>
+
+      <h4>Verdict</h4>
+      <div class="form-grid">
+        <${Field} label="Evidence confidence"><${Sel} value=${confidence} onChange=${setConfidence} options=${CONFIDENCE}/></${Field}>
+      </div>
+      <${Field} label="Summary"><textarea value=${summary} onInput=${e=>setSummary(e.target.value)} placeholder="Business quality vs entry — what's the read?"/></${Field}>
+      <${Field} label="Research needed (one per line)"><textarea value=${research} onInput=${e=>setResearch(e.target.value)}/></${Field}>
+
+      <div class="banner"><div class="wrap-row"><span>Result:</span><span class="score-pill">Q ${fmtNum(derived.quality_score,0)}</span><${Chip} kind=${statusKind(derived.entry_stance)}>Entry: ${titleCase(derived.entry_stance||"—")}</${Chip}><${Chip} kind=${statusKind(derived.decision_zone)}>Zone: ${titleCase(derived.decision_zone)}</${Chip}></div></div>
+      <div class="between"><span class="xs muted">Saved as an immutable snapshot — history is never overwritten.</span><button class="btn" onClick=${save}>Save assessment</button></div>
+    </div>
+  </${Modal}>`;
+}
+function mapNums(o){const r={};Object.keys(o||{}).forEach(k=>{const n=num(o[k]);if(n!=null)r[k]=n;});return r;}
+function deltaReason(change,prev,d){
+  if(change.changes.includes("PRICE_ONLY_ENTRY_IMPROVEMENT"))return "Price moved into a better entry band; business-quality assessment unchanged.";
+  if(change.changes.includes("PRICE_ONLY_ENTRY_DETERIORATION"))return "Price moved into a worse entry band; quality unchanged.";
+  if(change.changes.includes("QUALITY_IMPROVEMENT"))return "Quality score rose to "+fmtNum(d.quality_score,0)+" from "+fmtNum(prev&&prev.quality_score,0)+".";
+  if(change.changes.includes("QUALITY_DETERIORATION"))return "Quality score fell to "+fmtNum(d.quality_score,0)+" from "+fmtNum(prev&&prev.quality_score,0)+".";
+  return "Reassessed; no material change.";
+}
+
+/* ============================================================ Price form (manual) */
+function PriceForm({s,onClose}){
+  const app=useApp(); const p=s.price||{};
+  const [current,setCurrent]=useState(p.current!=null?String(p.current):"");
+  const [prev,setPrev]=useState(p.prev_close!=null?String(p.prev_close):(p.current!=null?String(p.current):""));
+  const [high,setHigh]=useState(p.high52w!=null?String(p.high52w):"");
+  const [date,setDate]=useState(todayKey());
+  const save=async()=>{
+    const price=num(current); if(price==null){onClose();return;}
+    const prevClose=num(prev); const history=(p.history||[]).slice(-499);
+    if(!history.length||history[history.length-1].date!==date)history.push({date,close:price}); else history[history.length-1].close=price;
+    const newPrice={current:price,prev_close:prevClose!=null?prevClose:p.current,high52w:num(high),as_of:nowIso(),provider:"manual",freshness:"MANUAL",history};
+    // band crossing
+    const crossing=E.detectBandCrossing(s.entry_bands||[], s.last_band||null, price);
+    const move=E.dailyMovePct(newPrice.prev_close, price);
+    const cl=(s.changelog||[]).slice(-99);
+    let latest={...(s.latest||{})};
+    if(crossing){
+      latest.entry_classification=crossing.stance; latest.entry_rank=E.entryRank(crossing.stance); latest.entry_band_name=crossing.to;
+      cl.push({at:nowIso(),changes:[crossing.direction==="IMPROVING_ENTRY"?"PRICE_ONLY_ENTRY_IMPROVEMENT":"PRICE_ONLY_ENTRY_DETERIORATION"],quality_changed:false,entry_changed:true,
+        reason:"Price "+fmtMoney(price,s.currency,2)+": "+(crossing.from||"—")+" → "+crossing.to+". Quality unchanged."});
+      await app.pushAlert({security_id:s.id,security_key:secKey(s),type:"BAND_CROSSING",direction:crossing.direction,band_to:crossing.to,
+        title:secKey(s)+" · entry "+(crossing.from||"—")+" → "+crossing.to,current_price:price,
+        old_state:crossing.from||"—",new_state:crossing.to,quality_changed:false,entry_changed:true,
+        rationale:"Stored "+titleCase(crossing.stance)+" threshold crossed at "+fmtMoney(price,s.currency,2)+". No new company evidence changed the business-quality assessment.",
+        affected_dimensions:["Valuation / margin of safety","Temporal market context"],next_action:"REVIEW"});
+    } else {
+      const band=E.findBand(s.entry_bands||[],price); if(band){latest.entry_classification=band.stance;latest.entry_rank=E.entryRank(band.stance);latest.entry_band_name=band.name;}
+    }
+    if(E.isBigDailyMove(newPrice.prev_close,price,app.meta.move_threshold||0.05)){
+      await app.pushAlert({security_id:s.id,security_key:secKey(s),type:"DAILY_MOVE",session:date,move_pct:move,
+        title:secKey(s)+" · "+fmtPct(move)+" on the day",current_price:price,old_state:fmtMoney(newPrice.prev_close,s.currency,2),new_state:fmtMoney(price,s.currency,2),
+        quality_changed:false,entry_changed:!!crossing,rationale:"Daily move exceeded the "+((app.meta.move_threshold||0.05)*100)+"% threshold. Check for news before acting.",next_action:"REVIEW"});
+    }
+    await app.saveSecurity({...s,price:newPrice,last_band:crossing?crossing.to:(E.findBand(s.entry_bands||[],price)||{}).name||s.last_band,latest,changelog:cl});
+    app.notify("Price updated"); onClose();
+  };
+  return html`<${Modal} title=${"Update price · "+secKey(s)} onClose=${onClose}>
+    <div class="banner small" style=${{marginBottom:"12px"}}>Free hosted apps can't pull live exchange data, so prices are entered manually (or via CSV). Freshness is shown honestly as <b>Manual</b>.</div>
+    <div class="form-grid">
+      <${Field} label=${"Current price ("+(s.currency||"")+")"}><input inputmode="decimal" value=${current} onInput=${e=>setCurrent(e.target.value)}/></${Field}>
+      <${Field} label="Previous close" hint="for daily-move detection"><input inputmode="decimal" value=${prev} onInput=${e=>setPrev(e.target.value)}/></${Field}>
+      <${Field} label="52-week high" hint="optional, for drawdown"><input inputmode="decimal" value=${high} onInput=${e=>setHigh(e.target.value)}/></${Field}>
+      <${Field} label="As of date"><input type="date" value=${date} onInput=${e=>setDate(e.target.value)}/></${Field}>
+    </div>
+    <div class="between" style=${{marginTop:"14px"}}><span class="xs muted">Band crossings & >${((app.meta.move_threshold||0.05)*100)}% moves create alerts (deduped).</span><button class="btn" onClick=${save}>Save price</button></div>
+  </${Modal}>`;
+}
+
+/* ============================================================ Thesis form */
+function ThesisForm({s,onClose}){
+  const app=useApp(); const a=(s.thesis&&s.thesis.active)||{};
+  const [f,setF]=useState({fundamental_reason:a.fundamental_reason||"",supporting_flow_condition:a.supporting_flow_condition||"",main_risk:a.main_risk||"",thesis_type:a.thesis_type||"long_term",consensus_position:a.consensus_position||"unclear",portfolio_role:a.portfolio_role||s.role||"",intended_time_horizon:a.intended_time_horizon||"",status:a.status||"INTACT",narrative:a.narrative||""});
+  const [gates,setGates]=useState(s.thesis_gates||[]);
+  const up=(k,v)=>setF(o=>({...o,[k]:v}));
+  const save=async()=>{
+    const {versions,active}=VZ.addThesisVersion((s.thesis&&s.thesis.versions)||[],f,uid());
+    const cl=(s.changelog||[]).slice(-99);
+    if(s.thesis&&s.thesis.active){const diff=VZ.thesisDiff(s.thesis.active,active);if(Object.keys(diff).length)cl.push({at:nowIso(),changes:["THESIS_UPDATE"],quality_changed:false,entry_changed:false,reason:"Thesis edited: "+Object.keys(diff).map(titleCase).join(", ")+"."});}
+    else cl.push({at:nowIso(),changes:["THESIS_CREATED"],quality_changed:false,entry_changed:false,reason:"Thesis created."});
+    // thesis gate state changes → alert
+    (gates||[]).forEach(async(g)=>{const old=(s.thesis_gates||[]).find(x=>x.metric_name===g.metric_name);if(old&&old.state!==g.state&&g.state){await app.pushAlert({security_id:s.id,security_key:secKey(s),type:"THESIS_GATE",subtype:g.metric_name,title:secKey(s)+" · "+g.metric_name+" "+old.state+" → "+g.state,old_state:old.state,new_state:g.state,quality_changed:true,entry_changed:false,rationale:"Monitored thesis gate changed state.",next_action:"REASSESS"});}});
+    const latest={...(s.latest||{}),thesis_status:f.status};
+    await app.saveSecurity({...s,thesis:{versions,active},thesis_gates:gates,latest,changelog:cl});
+    app.notify("Thesis saved"); onClose();
+  };
+  return html`<${Modal} title=${"Thesis · "+secKey(s)} onClose=${onClose} wide=${true}>
+    <div class="stack">
+      <div class="banner small">Preferred sentence: “I am considering [asset] because [fundamental reason], and I believe [flow condition] may become supportive. The main risk is [risk].” Editing creates a new version — history is kept.</div>
+      <${Field} label="Narrative"><textarea value=${f.narrative} onInput=${e=>up("narrative",e.target.value)}/></${Field}>
+      <div class="form-grid">
+        <${Field} label="Fundamental reason"><input value=${f.fundamental_reason} onInput=${e=>up("fundamental_reason",e.target.value)}/></${Field}>
+        <${Field} label="Supporting flow condition"><input value=${f.supporting_flow_condition} onInput=${e=>up("supporting_flow_condition",e.target.value)}/></${Field}>
+        <${Field} label="Main risk (falsifier)"><input value=${f.main_risk} onInput=${e=>up("main_risk",e.target.value)}/></${Field}>
+        <${Field} label="Thesis type"><${Sel} value=${f.thesis_type} onChange=${v=>up("thesis_type",v)} options=${THESIS_TYPES}/></${Field}>
+        <${Field} label="Consensus position"><${Sel} value=${f.consensus_position} onChange=${v=>up("consensus_position",v)} options=${CONSENSUS}/></${Field}>
+        <${Field} label="Portfolio role"><${Sel} value=${f.portfolio_role} onChange=${v=>up("portfolio_role",v)} options=${ROLES} placeholder="—" labeler=${r=>ROLE_LABEL[r]||titleCase(r)}/></${Field}>
+        <${Field} label="Time horizon"><input value=${f.intended_time_horizon} onInput=${e=>up("intended_time_horizon",e.target.value)} placeholder="e.g. 3–5 years"/></${Field}>
+        <${Field} label="Thesis status"><${Sel} value=${f.status} onChange=${v=>up("status",v)} options=${THESIS_STATUS}/></${Field}>
+      </div>
+      <div class="between"><h4>Proof points & falsifiers (gates)</h4><button class="btn sm ghost" onClick=${()=>setGates(g=>[...g,{metric_name:"",positive_condition:"",neutral_condition:"",damage_condition:"",current_value:"",state:"UNKNOWN"}])}>${icons.plus()} Add gate</button></div>
+      ${gates.map((g,i)=>html`<div key=${i} class="card pad-sm stack" style=${{gap:"6px"}}>
+        <div class="between"><input placeholder="Metric (e.g. Enterprise NRR)" value=${g.metric_name} onInput=${e=>setGates(gs=>gs.map((x,j)=>j===i?{...x,metric_name:e.target.value}:x))} style=${{flex:1,padding:"6px",border:"1px solid var(--hair-2)",borderRadius:"7px",background:"var(--raise)",color:"var(--ink)"}}/><button class="link-btn small" style=${{color:"var(--bad)"}} onClick=${()=>setGates(gs=>gs.filter((_,j)=>j!==i))}>Remove</button></div>
+        <div class="form-grid" style=${{gap:"6px"}}>
+          <input placeholder="Positive if…" value=${g.positive_condition} onInput=${e=>setGates(gs=>gs.map((x,j)=>j===i?{...x,positive_condition:e.target.value}:x))} style=${{padding:"6px",border:"1px solid var(--hair-2)",borderRadius:"7px",background:"var(--raise)",color:"var(--ink)"}}/>
+          <input placeholder="Neutral if…" value=${g.neutral_condition} onInput=${e=>setGates(gs=>gs.map((x,j)=>j===i?{...x,neutral_condition:e.target.value}:x))} style=${{padding:"6px",border:"1px solid var(--hair-2)",borderRadius:"7px",background:"var(--raise)",color:"var(--ink)"}}/>
+          <input placeholder="Damage if…" value=${g.damage_condition} onInput=${e=>setGates(gs=>gs.map((x,j)=>j===i?{...x,damage_condition:e.target.value}:x))} style=${{padding:"6px",border:"1px solid var(--hair-2)",borderRadius:"7px",background:"var(--raise)",color:"var(--ink)"}}/>
+          <input placeholder="Current value" value=${g.current_value} onInput=${e=>setGates(gs=>gs.map((x,j)=>j===i?{...x,current_value:e.target.value}:x))} style=${{padding:"6px",border:"1px solid var(--hair-2)",borderRadius:"7px",background:"var(--raise)",color:"var(--ink)"}}/>
+          <${Sel} value=${g.state} onChange=${v=>setGates(gs=>gs.map((x,j)=>j===i?{...x,state:v}:x))} options=${["POSITIVE","NEUTRAL","DAMAGE","UNKNOWN"]}/>
+        </div>
+      </div>`)}
+      <div class="between"><span class="xs muted">Gate state changes create a single alert.</span><button class="btn" onClick=${save}>Save thesis</button></div>
+    </div>
+  </${Modal}>`;
+}
+
+/* ============================================================ Bands form */
+function BandsForm({s,onClose}){
+  const app=useApp(); const [bands,setBands]=useState((s.entry_bands&&s.entry_bands.length)?clone(s.entry_bands):[{name:"Strong entry",lower_bound:null,upper_bound:"",stance:"STRONG_ENTRY",rationale:""}]);
+  const up=(i,k,v)=>setBands(b=>b.map((x,j)=>j===i?{...x,[k]:v}:x));
+  const save=async()=>{
+    const cleaned=bands.filter(b=>b.name).map(b=>({name:b.name,lower_bound:b.lower_bound===""||b.lower_bound==null?null:num(b.lower_bound),upper_bound:b.upper_bound===""||b.upper_bound==null?null:num(b.upper_bound),stance:b.stance,rationale:b.rationale||"",currency:s.currency}));
+    const price=num(s.price&&s.price.current); const band=E.findBand(cleaned,price);
+    const latest={...(s.latest||{})}; if(band){latest.entry_classification=band.stance;latest.entry_rank=E.entryRank(band.stance);latest.entry_band_name=band.name;}
+    await app.saveSecurity({...s,entry_bands:cleaned,last_band:band?band.name:s.last_band,latest});
+    app.notify("Entry bands saved"); onClose();
+  };
+  return html`<${Modal} title=${"Entry bands · "+secKey(s)} onClose=${onClose} wide=${true}>
+    <div class="banner small" style=${{marginBottom:"10px"}}>A price belongs to a band when lower &lt; price ≤ upper. Leave a bound blank for open-ended (↓ / ↑). Bands are review thresholds, not orders.</div>
+    <div class="stack">
+      ${bands.map((b,i)=>html`<div key=${i} class="card pad-sm"><div class="form-grid" style=${{gap:"8px"}}>
+        <${Field} label="Name"><input value=${b.name} onInput=${e=>up(i,"name",e.target.value)}/></${Field}>
+        <${Field} label="Lower bound"><input inputmode="decimal" value=${b.lower_bound==null?"":b.lower_bound} onInput=${e=>up(i,"lower_bound",e.target.value)}/></${Field}>
+        <${Field} label="Upper bound"><input inputmode="decimal" value=${b.upper_bound==null?"":b.upper_bound} onInput=${e=>up(i,"upper_bound",e.target.value)}/></${Field}>
+        <${Field} label="Stance"><${Sel} value=${b.stance} onChange=${v=>up(i,"stance",v)} options=${STANCES}/></${Field}>
+        <${Field} label="Rationale"><input value=${b.rationale||""} onInput=${e=>up(i,"rationale",e.target.value)}/></${Field}>
+      </div><div style=${{textAlign:"right",marginTop:"6px"}}><button class="link-btn small" style=${{color:"var(--bad)"}} onClick=${()=>setBands(bs=>bs.filter((_,j)=>j!==i))}>Remove band</button></div></div>`)}
+      <button class="btn sm ghost" onClick=${()=>setBands(b=>[...b,{name:"",lower_bound:"",upper_bound:"",stance:"WAIT",rationale:""}])}>${icons.plus()} Add band</button>
+      <div class="between"><span></span><button class="btn" onClick=${save}>Save bands</button></div>
+    </div>
+  </${Modal}>`;
+}
+
+/* ============================================================ Event form */
+function EventForm({s,onClose}){
+  const app=useApp();
+  const [f,setF]=useState({type:"EARNINGS",date:todayKey(),headline:"",materiality:"3",thesis_effect:"neutral",affected:"",source_url:"",source_tier:"2",verified:true});
+  const up=(k,v)=>setF(o=>({...o,[k]:v}));
+  const save=async()=>{
+    const mat=num(f.materiality);
+    const ev={security_id:s.id,security_key:secKey(s),type:f.type,date:f.date,headline:f.headline,materiality:mat,
+      thesis_effect:f.thesis_effect,affected_dimensions:f.affected?f.affected.split(",").map(x=>x.trim()).filter(Boolean):[],
+      source_url:f.source_url,source_tier:num(f.source_tier),verified:!!f.verified};
+    await app.saveEvent(ev);
+    if(E.materialityWarrantsAlert(mat)){
+      await app.pushAlert({security_id:s.id,security_key:secKey(s),type:"MATERIAL_EVENT",event_hash:(f.type+"|"+f.date+"|"+f.headline).slice(0,80),
+        title:secKey(s)+" · "+titleCase(f.type)+" (M"+mat+"/5)",old_state:"—",new_state:titleCase(f.thesis_effect),
+        quality_changed:f.thesis_effect!=="neutral",entry_changed:false,
+        rationale:f.headline+(E.materialityRequiresPrimarySource(mat)&&!f.verified?" — UNVERIFIED SECONDARY SOURCE.":""),
+        affected_dimensions:ev.affected_dimensions,next_action:"REASSESS"});
+    }
+    app.notify("Event logged"); onClose();
+  };
+  return html`<${Modal} title=${"Log event · "+secKey(s)} onClose=${onClose}>
+    <div class="form-grid">
+      <${Field} label="Type"><${Sel} value=${f.type} onChange=${v=>up("type",v)} options=${EVENT_TYPES}/></${Field}>
+      <${Field} label="Date"><input type="date" value=${f.date} onInput=${e=>up("date",e.target.value)}/></${Field}>
+      <${Field} label="Materiality (1–5)"><${Sel} value=${f.materiality} onChange=${v=>up("materiality",v)} options=${["1","2","3","4","5"]}/></${Field}>
+      <${Field} label="Thesis effect"><${Sel} value=${f.thesis_effect} onChange=${v=>up("thesis_effect",v)} options=${["positive","neutral","negative"]}/></${Field}>
+      <${Field} label="Source tier (1 best)"><${Sel} value=${f.source_tier} onChange=${v=>up("source_tier",v)} options=${["1","2","3","4","5"]}/></${Field}>
+    </div>
+    <div style=${{marginTop:"10px"}}><${Field} label="Headline / what happened"><textarea value=${f.headline} onInput=${e=>up("headline",e.target.value)}/></${Field}></div>
+    <div class="form-grid" style=${{marginTop:"10px"}}>
+      <${Field} label="Affected dimensions (comma-separated)"><input value=${f.affected} onInput=${e=>up("affected",e.target.value)} placeholder="growth_trajectory, moat, valuation"/></${Field}>
+      <${Field} label="Source URL"><input value=${f.source_url} onInput=${e=>up("source_url",e.target.value)}/></${Field}>
+    </div>
+    <label class="row small" style=${{marginTop:"10px"}}><input type="checkbox" checked=${f.verified} onChange=${e=>up("verified",e.target.checked)}/> Verified against a primary source (§12.2)</label>
+    <div class="between" style=${{marginTop:"14px"}}><span class="xs muted">Materiality ≥3 creates one deduped alert.</span><button class="btn" onClick=${save}>Log event</button></div>
+  </${Modal}>`;
+}
+
+/* ============================================================ Watchlists */
+function Watchlists(){
+  const app=useApp(); const watch=app.securities.filter(s=>s.watchlist);
+  return html`<div class="stack"><div class="pagehead"><div class="t"><h1>Watchlist</h1><span class="muted">What you're tracking and what would make it interesting</span></div></div>
+    ${watch.length===0?html`<div class="card pad empty"><h3>Nothing watched</h3><p class="small">Add securities and tick “watchlist”.</p><button class="btn" onClick=${()=>go("/securities")}>Add a security</button></div>`:
+      html`<div class="card scroll-x"><${WatchTable} secs=${watch}/></div>`}
+  </div>`;
+}
+
+/* ============================================================ Portfolio */
+function Portfolio(){
+  const app=useApp(); const base=app.meta.base_ccy||"NZD";
+  const holdings=app.securities.filter(s=>s.holding&&num(s.holding.quantity));
+  const rows=holdings.map(s=>{const q=num(s.holding.quantity);const cur=num(s.price&&s.price.current)||num(s.holding.avg_cost)||0;const fx=num(s.holding.fx_rate)||1;const valN=q*cur;const valB=valN*fx;const cost=q*(num(s.holding.avg_cost)||0);const pl=cur&&s.holding.avg_cost?(cur-num(s.holding.avg_cost))/num(s.holding.avg_cost):null;return {s,q,valN,valB,pl,cur};});
+  const total=rows.reduce((a,r)=>a+r.valB,0);
+  const byRole={},byCcy={}; rows.forEach(r=>{byRole[r.s.role||"OTHER"]=(byRole[r.s.role||"OTHER"]||0)+r.valB;byCcy[r.s.currency||"?"]=(byCcy[r.s.currency||"?"]||0)+r.valB;});
+  const cols=["var(--ocean)","var(--pounamu-2)","var(--kowhai)","var(--clay)","var(--neutral)","var(--ocean-2)","var(--good)","var(--bad)"];
+  return html`<div class="stack">
+    <div class="pagehead"><div class="between"><div class="t"><h1>Portfolio</h1><span class="muted">Native and ${base} values kept separately</span></div><button class="btn ghost" onClick=${()=>go("/portfolio/import")}>Import CSV</button></div></div>
+    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
+      <div class="card pad"><div class="tag">Total value (${base})</div><div style=${{fontFamily:"var(--serif)",fontSize:"1.6rem"}}>${fmtMoney(total,base,0)}</div></div>
+      <div class="card pad stack"><div class="tag">By role</div><${Donut} data=${Object.keys(byRole).map((r,i)=>({label:titleCase(r),value:byRole[r],color:cols[i%cols.length]}))}/></div>
+      <div class="card pad stack"><div class="tag">By currency</div><${Donut} data=${Object.keys(byCcy).map((r,i)=>({label:r,value:byCcy[r],color:cols[i%cols.length]}))}/></div>
+    </div>
+    ${rows.length===0?html`<div class="card pad empty"><h3>No holdings</h3><p class="small">Import a broker CSV or add holdings on a security.</p></div>`:
+      html`<div class="card scroll-x"><table class="tbl"><thead><tr><th>Ticker</th><th>Role</th><th>Qty</th><th>Price</th><th>Value (native)</th><th>Value (${base})</th><th>P/L</th><th>Quality</th></tr></thead><tbody>
+      ${rows.sort((a,b)=>b.valB-a.valB).map(r=>html`<tr key=${r.s.id} style=${{cursor:"pointer"}} onClick=${()=>go("/securities/"+r.s.id)}>
+        <td><b class="mono">${secKey(r.s)}</b></td><td class="small muted">${titleCase(r.s.role||"—")}</td>
+        <td class="mono">${fmtNum(r.q,0)}</td><td class="mono">${fmtMoney(r.cur,r.s.currency,2)}</td>
+        <td class="mono">${fmtMoney(r.valN,r.s.currency,0)}</td><td class="mono">${fmtMoney(r.valB,base,0)}</td>
+        <td class=${r.pl==null?'muted':r.pl>=0?'delta-up':'delta-dn'}>${r.pl==null?"—":fmtPct(r.pl)}</td>
+        <td>${(r.s.latest&&r.s.latest.quality_score!=null)?html`<span class="score-pill">${fmtNum(r.s.latest.quality_score,0)}</span>`:"—"}</td></tr>`)}
+      </tbody></table></div>`}
+    <div class="card pad stack"><h3>Position sizing guidance</h3><div class="scroll-x"><table class="tbl"><thead><tr><th>Position type</th><th>Indicative size</th></tr></thead><tbody>${SIZE_GUIDE.map(r=>html`<tr key=${r[0]}><td>${r[0]}</td><td class="mono">${r[1]}</td></tr>`)}</tbody></table></div><div class="xs muted">User-editable defaults (§8.2).</div></div>
+  </div>`;
+}
+
+/* ============================================================ Portfolio import (CSV) */
+function PortfolioImport(){
+  const app=useApp(); const [raw,setRaw]=useState(""); const [parsed,setParsed]=useState(null); const [map,setMap]=useState({}); const [done,setDone]=useState(null);
+  const parse=(text)=>{
+    const lines=text.trim().split(/\r?\n/).filter(Boolean); if(lines.length<2){setParsed(null);return;}
+    const delim=lines[0].includes("\t")?"\t":",";
+    const headers=lines[0].split(delim).map(h=>h.trim());
+    const rows=lines.slice(1).map(l=>l.split(delim).map(c=>c.trim()));
+    setParsed({headers,rows});
+    // auto-map
+    const guess={};const find=(...ks)=>headers.findIndex(h=>ks.some(k=>h.toLowerCase().includes(k)));
+    guess.ticker=find("ticker","symbol","code"); guess.exchange=find("exchange","market"); guess.quantity=find("qty","quantity","units","shares"); guess.avg_cost=find("cost","price","avg"); guess.currency=find("currency","ccy");
+    setMap(guess);
+  };
+  const doImport=async()=>{
+    const {headers,rows}=parsed; let n=0;
+    for(const r of rows){
+      const get=(k)=>map[k]>=0?r[map[k]]:"";
+      const ticker=(get("ticker")||"").toUpperCase(); if(!ticker)continue;
+      const exchange=(get("exchange")||"OTHER").toUpperCase();
+      const existing=app.securities.find(x=>x.ticker===ticker&&(x.exchange===exchange||map.exchange<0));
+      const rec=existing?{...existing}:{ticker,exchange,asset_type:"STOCK",currency:(get("currency")||"USD").toUpperCase(),watchlist:false};
+      rec.holding={quantity:num(get("quantity")),avg_cost:num(get("avg_cost")),currency:rec.currency,fx_rate:rec.currency===(app.meta.base_ccy||"NZD")?1:(num(rec.holding&&rec.holding.fx_rate)||null)};
+      await app.saveSecurity(rec); n++;
+    }
+    setDone(n);
+  };
+  const FIELDS=[["ticker","Ticker *"],["exchange","Exchange"],["quantity","Quantity"],["avg_cost","Avg cost"],["currency","Currency"]];
+  return html`<div class="stack">
+    <button class="link-btn small row" onClick=${()=>go("/portfolio")}>${icons.back()} Portfolio</button>
+    <div class="pagehead"><div class="t"><h1>Import holdings</h1><span class="muted">Paste a broker CSV — the mapper adapts to your columns</span></div></div>
+    <div class="card pad stack">
+      <${Field} label="Paste CSV (or tab-separated) with a header row">
+        <textarea value=${raw} onInput=${e=>{setRaw(e.target.value);parse(e.target.value);}} style=${{minHeight:"120px",fontFamily:"var(--mono)",fontSize:".8rem"}} placeholder="Ticker,Exchange,Quantity,AvgCost,Currency\nRMD,NYSE,40,205.5,USD"></textarea>
+      </${Field}>
+      <div><button class="btn ghost sm" onClick=${()=>{const ex="Ticker,Exchange,Quantity,AvgCost,Currency\nRMD,NYSE,40,205.5,USD\nXRO,ASX,120,95.2,AUD";setRaw(ex);parse(ex);}}>Use example</button></div>
+    </div>
+    ${parsed&&html`<div class="card pad stack"><h3>Map columns</h3><div class="form-grid">
+      ${FIELDS.map(f=>html`<${Field} key=${f[0]} label=${f[1]}><select value=${map[f[0]]==null?-1:map[f[0]]} onChange=${e=>setMap(m=>({...m,[f[0]]:parseInt(e.target.value)}))}><option value="-1">— none —</option>${parsed.headers.map((h,i)=>html`<option key=${i} value=${i}>${h}</option>`)}</select></${Field}>`)}
+    </div>
+    <div class="scroll-x"><table class="tbl"><thead><tr>${parsed.headers.map((h,i)=>html`<th key=${i}>${h}</th>`)}</tr></thead><tbody>${parsed.rows.slice(0,4).map((r,i)=>html`<tr key=${i}>${r.map((c,j)=>html`<td key=${j} class="mono small">${c}</td>`)}</tr>`)}</tbody></table></div>
+    <div class="between"><span class="xs muted">${parsed.rows.length} rows · holdings reconcile with any imported snapshot.</span><button class="btn" disabled=${map.ticker==null||map.ticker<0} onClick=${doImport}>Import ${parsed.rows.length} rows</button></div>
+    </div>`}
+    ${done!=null&&html`<div class="banner"><b>Imported ${done} holdings.</b> <button class="link-btn" onClick=${()=>go("/portfolio")}>View portfolio →</button></div>`}
+  </div>`;
+}
+
+/* ============================================================ Events (all) */
+function EventsPage(){
+  const app=useApp(); const events=[...app.events].sort((a,b)=>new Date(b.date||b.created_at)-new Date(a.date||a.created_at));
+  return html`<div class="stack"><div class="pagehead"><div class="t"><h1>Events</h1><span class="muted">Material company events across all securities</span></div></div>
+    ${events.length===0?html`<div class="card pad empty"><h3>No events</h3><p class="small">Log events from a security's page. Materiality ≥3 is verified against a primary source before alerting.</p></div>`:
+      html`<div class="card pad stack">${events.map(e=>{const s=app.securities.find(x=>x.id===e.security_id);return html`<div key=${e.id} class="stack" style=${{gap:"4px",padding:"9px 0",borderBottom:"1px solid var(--hair)",cursor:"pointer"}} onClick=${()=>s&&go("/securities/"+s.id)}>
+        <div class="between"><div class="row"><${Chip} kind=${e.materiality>=4?'bad':e.materiality>=3?'warn':'neutral'}>M${e.materiality}/5</${Chip}><b class="mono">${e.security_key}</b><span>${titleCase(e.type)}</span></div><span class="xs muted">${fmtDate(e.date)}</span></div>
+        ${e.headline&&html`<div class="small">${e.headline}</div>`}</div>`; })}</div>`}
+  </div>`;
+}
+
+/* ============================================================ Alerts */
+function Alerts(){
+  const app=useApp(); const [filter,setFilter]=useState("all");
+  let list=[...app.alerts]; if(filter==="unread")list=list.filter(a=>!a.read);
+  return html`<div class="stack">
+    <div class="pagehead"><div class="between"><div class="t"><h1>Alerts</h1><span class="muted">An attention filter — quality vs price, with evidence</span></div>
+      <div class="wrap-row"><button class="btn sm ${filter==='all'?'':'ghost'}" onClick=${()=>setFilter("all")}>All</button><button class="btn sm ${filter==='unread'?'':'ghost'}" onClick=${()=>setFilter("unread")}>Unread</button></div></div></div>
+    ${list.length===0?html`<div class="card pad empty"><h3>No alerts</h3><p class="small">Alerts fire only for band crossings, >${((app.meta.move_threshold||0.05)*100)}% moves, material events, thesis-gate changes and gate flips.</p></div>`:
+      list.map(a=>html`<div key=${a.id} class="card pad stack" style=${{gap:"8px",opacity:a.read?0.7:1}}>
+        <div class="between"><div class="row"><b>${a.title}</b></div><div class="wrap-row">
+          ${a.quality_changed&&a.entry_changed?html`<${Chip} kind="warn">Both</${Chip}>`:a.quality_changed?html`<${Chip} kind="bad">Quality change</${Chip}>`:html`<${Chip} kind="neutral">Price-only</${Chip}>`}
+          <span class="xs muted">${fmtDate(a.created_at)}</span></div></div>
+        <div class="wrap-row small">${a.old_state&&html`<span class="mono">${a.old_state} → ${a.new_state}</span>`}${a.current_price!=null&&html`<span class="muted">· price ${fmtNum(a.current_price,2)}</span>`}</div>
+        <div class="small">${a.rationale}</div>
+        ${a.affected_dimensions&&a.affected_dimensions.length&&html`<div class="wrap-row">${a.affected_dimensions.map((d,i)=>html`<${Chip} key=${i} kind="neutral">${titleCase(d)}</${Chip}>`)}</div>`}
+        <div class="between"><${Chip} kind="solid">${a.next_action||"REVIEW"}</${Chip}><div class="wrap-row">
+          <button class="link-btn small" onClick=${()=>app.markAlert(a.id,!a.read)}>${a.read?"Mark unread":"Mark read"}</button>
+          <button class="link-btn small" onClick=${()=>{const s=app.securities.find(x=>x.id===a.security_id);if(s)go("/securities/"+s.id);}}>Open security →</button>
+          <button class="link-btn small" style=${{color:"var(--bad)"}} onClick=${()=>app.deleteAlert(a.id)}>Dismiss</button></div></div>
+      </div>`)}
+  </div>`;
+}
+
+/* ============================================================ Compare */
+function Compare(){
+  const app=useApp(); const [view,setView]=useState("quality_entry");
+  const cands=app.securities.filter(s=>s.latest&&s.latest.quality_score!=null).map(candidateFromSec);
+  let ranked=E.rankCandidates(cands);
+  if(view==="best_quality")ranked=[...cands].sort((a,b)=>(b.raw_quality||0)-(a.raw_quality||0));
+  if(view==="best_entry")ranked=[...cands].sort((a,b)=>(b.entry_score||0)-(a.entry_score||0));
+  const views=[["quality_entry","Best quality-to-entry"],["best_quality","Best quality"],["best_entry","Best entry today"]];
+  return html`<div class="stack">
+    <div class="pagehead"><div class="t"><h1>Compare</h1><span class="muted">Ranking respects hard gates before raw score</span></div></div>
+    <div class="wrap-row">${views.map(v=>html`<button key=${v[0]} class="btn sm ${view===v[0]?'':'ghost'}" onClick=${()=>setView(v[0])}>${v[1]}</button>`)}</div>
+    ${ranked.length===0?html`<div class="card pad empty"><h3>Nothing to compare</h3><p class="small">Run full assessments first.</p></div>`:
+      html`<div class="card scroll-x"><table class="tbl"><thead><tr><th>Ticker</th><th>Gates</th><th>Quality</th><th>Entry</th><th>Zone</th><th>Timing</th><th>Confidence</th><th>Role</th></tr></thead><tbody>
+      ${ranked.map(c=>{const l=c.sec.latest||{};return html`<tr key=${c.id} style=${{cursor:"pointer"}} onClick=${()=>go("/securities/"+c.id)}>
+        <td><b class="mono">${c.name}</b></td><td><${St} v=${c.hard_gate_status}/></td>
+        <td><span class="score-pill">${fmtNum(c.raw_quality,0)}</span></td>
+        <td><${Chip} kind=${statusKind(l.entry_classification)}>${titleCase(l.entry_classification||"—")}</${Chip}></td>
+        <td><${Chip} kind=${statusKind(l.decision_zone)}>${titleCase(l.decision_zone||"—")}</${Chip}></td>
+        <td class="mono">${l.six?l.six.favourable+"/6":"—"}</td><td class="small">${titleCase(l.confidence||"—")}</td><td class="small muted">${titleCase(c.sec.role||"—")}</td></tr>`; })}
+      </tbody></table></div>`}
+  </div>`;
+}
+
+/* ============================================================ Research */
+function Research(){
+  const app=useApp();
+  const modes=[["QUICK_SCREEN","Quick screen","Fast triage of a new idea"],["FULL_ASSESSMENT","Full assessment","Complete framework scorecard + market context"],["THESIS_UPDATE","Thesis update","Revise thesis and falsifiers"],["RED_TEAM","Red-team","Attack the thesis"],["EVENT_REASSESSMENT","Event reassessment","Re-score after a material event"],["WATCHLIST_REVIEW","Watchlist review","Re-rank what you're tracking"],["PORTFOLIO_REVIEW","Portfolio review","Monthly liquidity / flow review"],["SECTOR_THEME_RESEARCH","Sector / theme","Top-down theme work"]];
+  return html`<div class="stack">
+    <div class="pagehead"><div class="t"><h1>Research</h1><span class="muted">Modes share one evidence store</span></div></div>
+    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
+      ${modes.map(m=>html`<div key=${m[0]} class="card pad stack" style=${{gap:"6px"}}><div class="tag">${m[0].replace(/_/g," ")}</div><h3>${m[1]}</h3><p class="small muted" style=${{margin:0}}>${m[2]}</p>
+        <div>${m[0]==="FULL_ASSESSMENT"?html`<button class="btn sm ghost" onClick=${()=>go("/securities")}>Pick a security →</button>`:m[0]==="PORTFOLIO_REVIEW"?html`<button class="btn sm ghost" onClick=${()=>go("/portfolio")}>Open portfolio →</button>`:html`<span class="xs muted">Open a security to run this.</span>`}</div></div>`)}
+    </div>
+    <div class="card pad stack"><h3>Monthly portfolio review — questions</h3><div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:"6px"}}>
+      ${["What asset classes are attracting capital?","Which sectors are leading vs weakening?","Are bond yields helping or hurting?","Is the USD helping or hurting risk appetite?","Are credit spreads calm or stressed?","Are holdings liquid enough?","Which holdings look crowded?","Which holdings have improving / deteriorating flows?","Which holdings no longer fit their role?","What should be researched further?"].map((q,i)=>html`<div key=${i} class="small" style=${{padding:"6px 0",borderBottom:"1px solid var(--hair)"}}>${q}</div>`)}
+    </div></div>
+  </div>`;
+}
+
+/* ============================================================ Framework */
+function Framework(){
+  const app=useApp(); const [edit,setEdit]=useState(false);
+  const b=app.frameworks.find(f=>f.profile==="B")||app.activeFw; const a=app.frameworks.find(f=>f.profile==="A");
+  const versionsB=app.frameworks.filter(f=>f.profile==="B").sort((x,y)=>y.version-x.version);
+  return html`<div class="stack">
+    <div class="pagehead"><div class="between"><div class="t"><h1>Framework</h1><span class="reo">Kawa</span></div><button class="btn ghost sm" onClick=${()=>setEdit(true)}>Edit weights → new version</button></div></div>
+    <div class="banner small">Framework rules are versioned data, never hard-coded. Editing weights or gates creates a new version; historical analyses keep the version they were scored under.</div>
+    <div class="card pad stack"><div class="between"><h3>Profile B — Quality / Entry overlay</h3><span class="tag">v${b.version} · active</span></div>
+      <div class="scroll-x"><table class="tbl"><thead><tr><th>Dimension</th><th>Weight</th><th>Purpose</th></tr></thead><tbody>${(b.dimensions||[]).map(d=>html`<tr key=${d.key}><td><b>${d.label}</b></td><td class="mono">${d.weight}</td><td class="small muted">${d.purpose}</td></tr>`)}</tbody></table></div>
+    </div>
+    <div class="card pad stack"><h3>Hard gates</h3><div class="stack" style=${{gap:"2px"}}>${(b.gates||[]).map(g=>html`<div key=${g.key} class="small" style=${{padding:"5px 0",borderBottom:"1px solid var(--hair)"}}>${g.label}</div>`)}</div>
+      <div class="xs muted">A failed quality gate cannot be rescued by cheap price or favourable market context.</div></div>
+    ${a&&html`<div class="card pad stack"><div class="between"><h3>Profile A — Core 40-point scorecard</h3><span class="tag">v${a.version}</span></div>
+      <div class="scroll-x"><table class="tbl"><thead><tr><th>Category</th><th>Max</th></tr></thead><tbody>${(a.core_categories||[]).map(c=>html`<tr key=${c.key}><td>${c.label}</td><td class="mono">${c.max}</td></tr>`)}<tr><td><b>Total</b></td><td class="mono"><b>40</b></td></tr></tbody></table></div>
+      <div class="small muted">If trading OR underlying liquidity &lt; 2 → HIGH_LIQUIDITY_RISK regardless of total.</div></div>`}
+    <div class="card pad stack"><h3>Investment Kawa</h3><ol class="small" style=${{margin:0,paddingLeft:"18px",lineHeight:1.7}}>${KAWA.map((k,i)=>html`<li key=${i}>${k}</li>`)}</ol></div>
+    ${versionsB.length>1&&html`<div class="card pad stack"><h3>Version history</h3>${versionsB.map(v=>html`<div key=${v.id} class="between small" style=${{padding:"5px 0",borderBottom:"1px solid var(--hair)"}}><span>v${v.version}${v.id===app.meta.active_fw?" · active":""}</span><span class="xs muted">${fmtDate(v.created_at)}</span></div>`)}</div>`}
+    ${edit&&html`<${FrameworkEdit} base=${b} onClose=${()=>setEdit(false)}/>`}
+  </div>`;
+}
+function FrameworkEdit({base,onClose}){
+  const app=useApp(); const [dims,setDims]=useState(clone(base.dimensions||PROFILE_B_DIMS)); const [thr,setThr]=useState(base.quality_high_threshold||60);
+  const save=async()=>{
+    const {next}=VZ.nextFrameworkVersion(base,{dimensions:dims,quality_high_threshold:num(thr)},uid());
+    // supersede old active
+    await app.saveFramework(VZ.supersede(base));
+    await app.saveFramework(next);
+    await app.updateMeta({active_fw:next.id});
+    app.notify("New framework version v"+next.version+" saved"); onClose();
+  };
+  return html`<${Modal} title="Edit Profile B → new version" onClose=${onClose}>
+    <div class="banner small" style=${{marginBottom:"10px"}}>Saving creates version ${(base.version||1)+1}. Existing snapshots keep their original version.</div>
+    <div class="stack">${dims.map((d,i)=>html`<div key=${d.key} class="between"><span class="small">${d.label}</span><input inputmode="numeric" value=${d.weight} onInput=${e=>setDims(ds=>ds.map((x,j)=>j===i?{...x,weight:num(e.target.value)||0}:x))} style=${{width:"80px",padding:"6px",border:"1px solid var(--hair-2)",borderRadius:"7px",background:"var(--raise)",color:"var(--ink)",textAlign:"right",fontFamily:"var(--mono)"}}/></div>`)}
+      <${Field} label="Quality HIGH threshold (0–100, for decision zone)"><input inputmode="numeric" value=${thr} onInput=${e=>setThr(e.target.value)}/></${Field}>
+      <div class="between"><span class="xs muted">Weights are normalised at scoring time.</span><button class="btn" onClick=${save}>Save new version</button></div>
+    </div>
+  </${Modal}>`;
+}
+
+/* ============================================================ Settings */
+function Settings(){
+  const app=useApp(); const [busy,setBusy]=useState(false);
+  const setTheme=(t)=>{ app.updateMeta({theme:t}); if(t==="system")document.documentElement.removeAttribute("data-theme"); else document.documentElement.setAttribute("data-theme",t); };
+  const exportAll=async()=>{
+    setBusy(true);
+    const data={exported_at:nowIso(),meta:app.meta,securities:app.securities,snapshots:app.snapshots,alerts:app.alerts,events:app.events,frameworks:app.frameworks};
+    const json=JSON.stringify(data,null,2);
+    const dl=await getDownloads();
+    if(dl){ try{ await dl.save({filename:"tairawhiti-invest-backup-"+todayKey()+".json",data:json}); app.notify("Backup saved"); }catch(e){ app.notify("Save cancelled"); } }
+    else { try{ const blob=new Blob([json],{type:"application/json"});const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download="tairawhiti-invest-backup.json";a.click();URL.revokeObjectURL(u);}catch(e){ app.notify("Export not available here"); } }
+    setBusy(false);
+  };
+  return html`<div class="stack">
+    <div class="pagehead"><div class="t"><h1>Settings</h1></div></div>
+    <div class="card pad stack"><h3>General</h3>
+      <div class="between"><span class="small">Base reporting currency</span><input value=${app.meta.base_ccy||"NZD"} onChange=${e=>app.updateMeta({base_ccy:e.target.value.toUpperCase()})} style=${{width:"90px",padding:"6px",textAlign:"center",border:"1px solid var(--hair-2)",borderRadius:"7px",background:"var(--raise)",color:"var(--ink)"}}/></div>
+      <div class="between"><span class="small">Daily-move alert threshold</span><span class="mono">${((app.meta.move_threshold||0.05)*100).toFixed(0)}%</span></div>
+      <input type="range" min="1" max="15" value=${(app.meta.move_threshold||0.05)*100} onChange=${e=>app.updateMeta({move_threshold:parseInt(e.target.value)/100})}/>
+      <label class="row small"><input type="checkbox" checked=${!!app.meta.redact_positions} onChange=${e=>app.updateMeta({redact_positions:e.target.checked})}/> Redact position sizes when sending context to AI (§33)</label>
+    </div>
+    <div class="card pad stack"><h3>Appearance</h3><div class="wrap-row">${["system","light","dark"].map(t=>html`<button key=${t} class="btn sm ${((app.meta.theme||'system')===t)?'':'ghost'}" onClick=${()=>setTheme(t)}>${titleCase(t)}</button>`)}</div></div>
+    <div class="card pad stack"><h3>Data</h3>
+      <div class="kv"><span class="k">Storage backend</span><span class="v">${app.backend==="db"?"Cloud (db capability) — persists across devices":"Local browser storage (preview fallback)"}</span></div>
+      <div class="kv"><span class="k">Securities</span><span class="v mono">${app.securities.length}</span></div>
+      <div class="kv"><span class="k">Snapshots</span><span class="v mono">${app.snapshots.length}</span></div>
+      <div class="kv"><span class="k">AI (sample capability)</span><span class="v">${app.hasSample?"Available":"Not available in this view"}</span></div>
+      <div class="wrap-row" style=${{marginTop:"8px"}}><button class="btn ghost sm" disabled=${busy} onClick=${exportAll}>Export backup (JSON)</button></div>
+    </div>
+    <div class="card pad stack"><h3>About</h3><p class="small muted" style=${{margin:0}}>Tairāwhiti Invest is a persistent research memory: it records what you believed, the evidence you relied on, what changed, how the framework read the change, and the price/evidence conditions that now deserve attention. Deterministic code computes scores, entry bands, moves and alerts; AI (optional) only interprets evidence.</p></div>
+  </div>`;
+}
+
+/* ============================================================ sample data loader */
+async function loadSampleData(app){
+  const defs=[
+    {ticker:"GOOGL",exchange:"NASDAQ",name:"Alphabet Inc.",currency:"USD",asset_type:"STOCK",sector:"Communication Services",role:"CORE_COMPOUNDER",tier:"TIER_1",
+      summary:"Search, advertising, YouTube, Cloud and Other Bets. Makes money mainly from advertising with a growing cloud franchise.",
+      price:{current:172.4,prev_close:171.2,high52w:193.3},
+      bands:[{name:"Strong entry",lower_bound:null,upper_bound:150,stance:"STRONG_ENTRY"},{name:"Starter",lower_bound:150,upper_bound:170,stance:"STARTER"},{name:"Acceptable",lower_bound:170,upper_bound:185,stance:"ACCEPTABLE"},{name:"Wait",lower_bound:185,upper_bound:210,stance:"WAIT"},{name:"Avoid chasing",lower_bound:210,upper_bound:null,stance:"AVOID_CHASING"}],
+      dimB:{business_quality:5,moat_durability:5,management_capital:4,financial_strength:5,growth_trajectory:4,valuation_mos:3,market_context:3},
+      coreA:{quality:5,valuation:3,trading_liquidity:5,underlying_liquidity:5,capital_flows:4,macro_liquidity:3,trend_momentum:4,risk_control:4},
+      gates:{durable_moat:"PASS",management_trust:"PASS",balance_sheet:"PASS",earnings_quality:"PASS",margin_of_safety:"REVIEW",market_context:"REVIEW",liquidity:"PASS"},
+      mc:{temporal:"NEUTRAL",structural:"STRONG_STRUCTURAL",irrational:"FAIR",signals:["MIXED","MIXED","FAVOURABLE","FAVOURABLE","MIXED","FAVOURABLE"]},flow:"STRONG_POSITIVE",confidence:"HIGH",
+      thesis:{fundamental_reason:"Dominant search economics funding AI and cloud optionality",supporting_flow_condition:"Institutional re-rating as AI monetises",main_risk:"AI disrupts search query economics",thesis_type:"long_term",consensus_position:"consensus",intended_time_horizon:"5+ years",status:"INTACT",narrative:"Best-in-class cash generation with real AI optionality; entry matters more than quality here."}},
+    {ticker:"RMD",exchange:"NYSE",name:"ResMed Inc.",currency:"USD",asset_type:"STOCK",sector:"Healthcare Devices",role:"CORE_COMPOUNDER",tier:"TIER_2",
+      summary:"Sleep apnoea and respiratory devices plus a growing recurring mask/consumables and software franchise.",
+      price:{current:219.8,prev_close:231.0,high52w:260.0},
+      bands:[{name:"Strong entry",lower_bound:null,upper_bound:200,stance:"STRONG_ENTRY"},{name:"Starter",lower_bound:200,upper_bound:220,stance:"STARTER"},{name:"Acceptable",lower_bound:220,upper_bound:240,stance:"ACCEPTABLE"},{name:"Wait",lower_bound:240,upper_bound:270,stance:"WAIT"},{name:"Avoid chasing",lower_bound:270,upper_bound:null,stance:"AVOID_CHASING"}],
+      dimB:{business_quality:4,moat_durability:4,management_capital:4,financial_strength:4,growth_trajectory:4,valuation_mos:4,market_context:4},
+      coreA:{quality:4,valuation:4,trading_liquidity:4,underlying_liquidity:5,capital_flows:3,macro_liquidity:3,trend_momentum:2,risk_control:4},
+      gates:{durable_moat:"PASS",management_trust:"PASS",balance_sheet:"PASS",earnings_quality:"PASS",margin_of_safety:"PASS",market_context:"PASS",liquidity:"PASS"},
+      mc:{temporal:"GOOD_ENTRY",structural:"STRONG_STRUCTURAL",irrational:"TOO_PESSIMISTIC",signals:["FAVOURABLE","FAVOURABLE","FAVOURABLE","FAVOURABLE","FAVOURABLE","MIXED"]},flow:"NEGATIVE_STABILISING",confidence:"HIGH",
+      thesis:{fundamental_reason:"Recurring consumables + installed base with GLP-1 fears overdone",supporting_flow_condition:"Sentiment recovery as volumes hold",main_risk:"GLP-1 drugs structurally reduce sleep-apnoea demand",thesis_type:"long_term",consensus_position:"contrarian",intended_time_horizon:"3–5 years",status:"INTACT",narrative:"Quality intact; the selloff on GLP-1 fear has improved entry materially."},
+      gatesT:[{metric_name:"Device + mask volume growth",positive_condition:">8% yoy",neutral_condition:"4–8%",damage_condition:"<4%",current_value:"~9%",state:"POSITIVE"}]},
+    {ticker:"XRO",exchange:"ASX",name:"Xero Limited",currency:"AUD",asset_type:"STOCK",sector:"SaaS / Accounting",role:"GARP",tier:"TIER_2",
+      summary:"Cloud accounting SaaS for small businesses across ANZ, UK and expanding markets. Subscription revenue, high retention.",
+      price:{current:132.0,prev_close:130.5,high52w:145.0},
+      bands:[{name:"Strong entry",lower_bound:null,upper_bound:100,stance:"STRONG_ENTRY"},{name:"Starter",lower_bound:100,upper_bound:120,stance:"STARTER"},{name:"Acceptable",lower_bound:120,upper_bound:135,stance:"ACCEPTABLE"},{name:"Wait",lower_bound:135,upper_bound:160,stance:"WAIT"},{name:"Avoid chasing",lower_bound:160,upper_bound:null,stance:"AVOID_CHASING"}],
+      dimB:{business_quality:4,moat_durability:4,management_capital:4,financial_strength:4,growth_trajectory:5,valuation_mos:2,market_context:3},
+      coreA:{quality:4,valuation:2,trading_liquidity:3,underlying_liquidity:4,capital_flows:3,macro_liquidity:3,trend_momentum:4,risk_control:3},
+      gates:{durable_moat:"PASS",management_trust:"PASS",balance_sheet:"PASS",earnings_quality:"REVIEW",margin_of_safety:"REVIEW",market_context:"REVIEW",liquidity:"REVIEW"},
+      mc:{temporal:"BAD_ENTRY_WAIT",structural:"STRONG_STRUCTURAL",irrational:"FAIR",signals:["UNFAVOURABLE","MIXED","FAVOURABLE","FAVOURABLE","MIXED","UNFAVOURABLE"]},flow:"STRONG_POSITIVE",confidence:"MEDIUM",
+      thesis:{fundamental_reason:"High-retention SaaS with pricing power and long runway",supporting_flow_condition:"Rule-of-40 improvement as margins scale",main_risk:"Growth decelerates while valuation stays rich",thesis_type:"long_term",consensus_position:"crowded",intended_time_horizon:"5+ years",status:"INTACT",narrative:"Great business, but the market is offering a poor entry — a patience case."},
+      gatesT:[{metric_name:"Net revenue retention",positive_condition:">=100%",neutral_condition:"97–99%",damage_condition:"<=96%",current_value:"101%",state:"POSITIVE"}]}
+  ];
+  const fw=app.activeFw;
+  for(const d of defs){
+    let sec={ticker:d.ticker,exchange:d.exchange,name:d.name,currency:d.currency,asset_type:d.asset_type,sector:d.sector,role:d.role,tier:d.tier,summary:d.summary,
+      watchlist:true,example:true,stage:"WATCHLIST",entry_bands:d.bands.map(b=>({...b,currency:d.currency})),
+      price:{current:d.price.current,prev_close:d.price.prev_close,high52w:d.price.high52w,as_of:nowIso(),provider:"manual",freshness:"MANUAL",
+        history:makeHistory(d.price.current)}};
+    // thesis
+    const {versions,active}=VZ.addThesisVersion([],d.thesis,uid()); sec.thesis={versions,active}; sec.thesis_gates=d.gatesT||[];
+    if(d.ticker==="RMD"){sec.holding={quantity:40,avg_cost:205.5,currency:"USD",fx_rate:1.62};}
+    if(d.ticker==="XRO"){sec.holding={quantity:120,avg_cost:95.2,currency:"AUD",fx_rate:1.08};}
+    sec=await app.saveSecurity(sec);
+    // snapshot
+    const derived=deriveSnapshot({dimB:d.dimB,coreA:d.coreA,gates:d.gates,temporal:d.mc.temporal,structural:d.mc.structural,irrational:d.mc.irrational,signals:d.mc.signals,flow_condition:d.flow,confidence:d.confidence},fw,sec);
+    const dims=(fw.dimensions||PROFILE_B_DIMS).map(x=>({key:x.key,label:x.label,score:d.dimB[x.key],rationale:"Seeded example rationale for "+x.label+".",confidence:d.confidence}));
+    const snap=await app.saveSnapshot({security_id:sec.id,framework_version_id:fw.id,analysis_type:"FULL_ASSESSMENT",as_of:nowIso(),
+      quality_score:derived.quality_score,dimensions:dims,core_scores:d.coreA,core_total:derived.core_total,core_band:derived.core_band,liquidity_flag:derived.liquidity_flag,
+      gates:derived.gates,gate_overall:derived.gate_overall,market_context:d.mc,decision_zone:derived.decision_zone,
+      entry_classification:derived.entry_stance,entry_band_name:derived.entry_band_name,thesis_status:"INTACT",confidence:d.confidence,summary:d.thesis.narrative,research_needed:[]});
+    const latest={quality_score:derived.quality_score,core_total:derived.core_total,core_band:derived.core_band,entry_classification:derived.entry_stance,
+      entry_rank:E.entryRank(derived.entry_stance),entry_band_name:derived.entry_band_name,thesis_status:"INTACT",decision_zone:derived.decision_zone,
+      gate_overall:derived.gate_overall,liquidity_flag:derived.liquidity_flag,six:derived.six,integration:derived.integration,market_context:d.mc,confidence:d.confidence,framework_version_id:fw.id,snapshot_id:snap.id,as_of:nowIso()};
+    const cl=[{at:nowIso(),changes:["THESIS_CONFIRMATION"],quality_changed:true,entry_changed:false,reason:"First full assessment recorded (worked example)."}];
+    await app.saveSecurity({...sec,latest,changelog:cl,last_band:derived.entry_band_name});
+  }
+}
+function makeHistory(cur){ const h=[];let p=cur*1.12;const start=new Date(Date.now()-120*86400000);for(let i=0;i<=24;i++){p=p+(cur-p)*0.09+(Math.sin(i)*cur*0.012);const d=new Date(start.getTime()+i*5*86400000);h.push({date:d.toISOString().slice(0,10),close:Math.round(p*100)/100});}h.push({date:todayKey(),close:cur});return h; }
+
+/* ============================================================ App root */
+function Screen(){
+  const app=useApp(); const route=useRoute(); const [more,setMore]=useState(false);
+  const parts=route.parts;
+  useEffect(()=>{ // apply saved theme
+    const t=app.meta.theme; if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t); else document.documentElement.removeAttribute("data-theme");
+  },[app.meta.theme]);
+  useEffect(()=>{window.scrollTo(0,0);},[route.path]);
+  let content, title="Overview";
+  if(parts[0]==="securities"&&parts[1]){content=html`<${SecurityDetail} id=${parts[1]}/>`;title="Security";}
+  else if(parts[0]==="securities"){content=html`<${Securities}/>`;title="Securities";}
+  else if(parts[0]==="watchlists"){content=html`<${Watchlists}/>`;title="Watchlist";}
+  else if(parts[0]==="portfolio"&&parts[1]==="import"){content=html`<${PortfolioImport}/>`;title="Import";}
+  else if(parts[0]==="portfolio"){content=html`<${Portfolio}/>`;title="Portfolio";}
+  else if(parts[0]==="events"){content=html`<${EventsPage}/>`;title="Events";}
+  else if(parts[0]==="alerts"){content=html`<${Alerts}/>`;title="Alerts";}
+  else if(parts[0]==="compare"){content=html`<${Compare}/>`;title="Compare";}
+  else if(parts[0]==="research"){content=html`<${Research}/>`;title="Research";}
+  else if(parts[0]==="framework"){content=html`<${Framework}/>`;title="Framework";}
+  else if(parts[0]==="settings"){content=html`<${Settings}/>`;title="Settings";}
+  else {content=html`<${Dashboard}/>`;title="Overview";}
+  return html`<div class="app">
+    <${Rail} path=${route.path} alerts=${app.alerts}/>
+    <${TopBar} title=${title}/>
+    <main class="main">${content}</main>
+    <${TabBar} path=${route.path} alerts=${app.alerts} onMore=${()=>setMore(true)}/>
+    ${more&&html`<${MoreSheet} onClose=${()=>setMore(false)}/>`}
+  </div>`;
+}
+
+function Root(){
+  const [ready,setReady]=useState(false);
+  return html`<${AppProvider}><${Boot}/></${AppProvider}>`;
+}
+function Boot(){
+  const app=useApp();
+  if(app.booting)return html`<div style=${{minHeight:"70vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:"12px"}}>
+    <div class="reo" style=${{fontSize:"1.3rem"}}>Tairāwhiti Invest</div><div class="muted small">Opening your research memory…</div>
+    <div class="skel" style=${{width:"220px",height:"10px"}}></div></div>`;
+  return html`<${Screen}/>`;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${Root}/>`);
+})();
+</script>

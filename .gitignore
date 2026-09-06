@@ -1,0 +1,5 @@
+node_modules/
+scripts/.smoke.html
+scripts/smoke-*.png
+*.log
+.DS_Store
