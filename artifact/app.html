@@ -934,6 +934,325 @@ progress{width:100%;height:8px}
   };
 });
 
+// ==== engine/sharesies.js (inlined verbatim) ====
+/*
+ * Tairāwhiti Invest — Sharesies import engine
+ * -------------------------------------------
+ * Pure, side-effect-free parsing/transform of the four Sharesies CSV exports into
+ * the app's security + portfolio shapes. UMD (require'd by tests, inlined into the
+ * artifact by scripts/build-artifact.mjs). No DOM, no network.
+ *
+ * The four reports and how they are used:
+ *   - investmentholdingsreport  -> current holdings (qty, native price, avg cost,
+ *                                  dividends/fees/tax/FIF). Source of truth for qty.
+ *   - transactionreport         -> per-instrument BUY/SELL history + a native price path.
+ *   - holdingssummaryreport     -> daily portfolio value (NZD) + current wallet cash.
+ *   - wallet_report             -> implied FX rates to NZD (only FX movements exist there).
+ *
+ * Two realities honoured here:
+ *   - Instruments are joined across files by NAME, not ticker (funds carry different
+ *     codes across reports).
+ *   - Current quantity comes from the holdings report's Ending shareholding, never a
+ *     transaction sum (corporate actions change the count).
+ */
+(function (root, factory) {
+  if (typeof module !== "undefined" && module.exports) module.exports = factory();
+  else root.Sharesies = factory();
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  // ---- primitives ----------------------------------------------------------
+  function parseNum(s) {
+    if (s == null) return null;
+    if (typeof s === "number") return isFinite(s) ? s : null;
+    var t = String(s).trim().replace(/,/g, "");
+    if (t === "" || t === "-") return null;
+    var n = parseFloat(t);
+    return isFinite(n) ? n : null;
+  }
+  function normName(s) {
+    return String(s == null ? "" : s).trim().toLowerCase().replace(/\s+/g, " ");
+  }
+  function parseTradeDate(s) {
+    // "2017-12-10 23:32:26.716947 (UTC)" | "2026-05-24" -> "YYYY-MM-DD"
+    var m = String(s == null ? "" : s).match(/(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : null;
+  }
+
+  // RFC-4180-ish CSV parser (handles quoted fields with commas and "" escapes).
+  function parseCsv(text) {
+    var rows = [];
+    var row = [];
+    var field = "";
+    var inQ = false;
+    text = String(text == null ? "" : text).replace(/^﻿/, "");
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else inQ = false;
+        } else field += c;
+      } else {
+        if (c === '"') inQ = true;
+        else if (c === ",") { row.push(field); field = ""; }
+        else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+        else if (c === "\r") { /* ignore */ }
+        else field += c;
+      }
+    }
+    if (field !== "" || row.length) { row.push(field); rows.push(row); }
+    // drop fully-empty trailing rows
+    rows = rows.filter(function (r) { return r.length && !(r.length === 1 && r[0].trim() === ""); });
+    if (!rows.length) return { headers: [], rows: [], objects: [] };
+    var headers = rows[0].map(function (h) { return h.trim(); });
+    var body = rows.slice(1);
+    var objects = body.map(function (r) {
+      var o = {};
+      for (var j = 0; j < headers.length; j++) o[headers[j]] = r[j] == null ? "" : r[j].trim();
+      return o;
+    });
+    return { headers: headers, rows: body, objects: objects };
+  }
+
+  function detectReportType(headers) {
+    var h = (headers || []).map(function (x) { return String(x).toLowerCase().trim(); });
+    var has = function (s) { return h.indexOf(s) >= 0; };
+    if (has("investment ticker symbol") && has("ending shareholding")) return "holdings";
+    if (has("trade id") && has("instrument code")) return "transactions";
+    if (has("investments total (nzd)")) return "summary";
+    if (h[0] === "timestamp" && has("currency") && (has("amount ($)") || has("amount"))) return "wallet";
+    return null;
+  }
+
+  function marketToExchange(code) {
+    var c = String(code == null ? "" : code).trim();
+    if (c === "" || /fund/i.test(c)) return "FUNDNZ";
+    return c.toUpperCase();
+  }
+
+  function assetType(name, exchange) {
+    var n = String(name == null ? "" : name).toLowerCase();
+    if (/\(adr\)|\badr\b/.test(n)) return "ADR";
+    if (/\betf\b/.test(n)) return "ETF";
+    if (/\bfund\b|\btrust\b/.test(n)) return "FUND";
+    if (String(exchange).toUpperCase() === "FUNDNZ") return "FUND";
+    return "STOCK";
+  }
+
+  function avgCost(purchasedDollar, purchasedShares) {
+    var d = parseNum(purchasedDollar), s = parseNum(purchasedShares);
+    if (d == null || s == null || s === 0) return null;
+    return Math.round((d / s) * 1e6) / 1e6;
+  }
+
+  // Implied FX to NZD from the wallet report. Groups the two legs of each exchange
+  // by (Timestamp + Description); a group with an NZD leg and one foreign leg yields
+  // rate[foreign] = |nzd| / |foreign| (NZD per 1 unit of foreign). Keeps the latest.
+  function impliedFxToNzd(walletObjects) {
+    var groups = {};
+    (walletObjects || []).forEach(function (r) {
+      var ts = r["Timestamp"], desc = r["Description"];
+      var key = ts + "||" + desc;
+      (groups[key] = groups[key] || { ts: ts, legs: [] }).legs.push({
+        ccy: String(r["Currency"] || "").toUpperCase(),
+        amt: Math.abs(parseNum(r["Amount ($)"]) || 0),
+      });
+    });
+    var rates = {}, asOf = {};
+    Object.keys(groups).forEach(function (k) {
+      var g = groups[k];
+      var nzd = g.legs.find(function (l) { return l.ccy === "NZD"; });
+      var foreign = g.legs.find(function (l) { return l.ccy !== "NZD"; });
+      if (!nzd || !foreign || !foreign.amt) return;
+      var rate = nzd.amt / foreign.amt;
+      if (!isFinite(rate) || rate <= 0) return;
+      if (!asOf[foreign.ccy] || g.ts > asOf[foreign.ccy]) {
+        rates[foreign.ccy] = Math.round(rate * 1e6) / 1e6;
+        asOf[foreign.ccy] = g.ts;
+      }
+    });
+    return { rates: rates, asOf: asOf };
+  }
+
+  function downsample(points, max) {
+    max = max || 250;
+    if (!points || points.length <= max) return (points || []).slice();
+    var step = Math.ceil(points.length / max);
+    var out = [];
+    for (var i = 0; i < points.length; i += step) out.push(points[i]);
+    if (out[out.length - 1] !== points[points.length - 1]) out.push(points[points.length - 1]);
+    return out;
+  }
+
+  // ---- orchestrator --------------------------------------------------------
+  // input: { holdings, transactions, summary, wallet } — each an array of row-objects
+  //        (from parseCsv().objects) or null.
+  // opts:  { baseCcy = "NZD" }
+  // returns: { securities: [...], metaPatch: {...}, warnings: [...] }
+  function buildImport(input, opts) {
+    input = input || {};
+    opts = opts || {};
+    var base = (opts.baseCcy || "NZD").toUpperCase();
+    var warnings = [];
+
+    var fx = impliedFxToNzd(input.wallet || []);
+    var rates = fx.rates || {};
+    rates[base] = 1;
+
+    // summary -> portfolio value history + cash + total
+    var metaPatch = {};
+    if (input.summary && input.summary.length) {
+      var pts = [];
+      input.summary.forEach(function (r) {
+        var v = parseNum(r["Investments total (NZD)"]);
+        if (v != null && v > 0) pts.push({ date: r["Date"], value: Math.round(v * 100) / 100 });
+      });
+      metaPatch.portfolio_history = downsample(pts, 250);
+      var last = input.summary[input.summary.length - 1];
+      metaPatch.cash = {
+        NZD: parseNum(last["NZD Wallet (NZD)"]) || 0,
+        USD: parseNum(last["USD Wallet (USD)"]) || 0,
+        AUD: parseNum(last["AUD Wallet (AUD)"]) || 0,
+      };
+      metaPatch.investments_total_nzd = parseNum(last["Investments total (NZD)"]);
+      metaPatch.report_end = last["Date"];
+    }
+
+    // group transactions by instrument name
+    var txByName = {};
+    (input.transactions || []).forEach(function (r) {
+      var key = normName(r["Instrument name"]);
+      (txByName[key] = txByName[key] || []).push({
+        date: parseTradeDate(r["Trade date"]),
+        type: String(r["Transaction type"] || "").toUpperCase(),
+        quantity: parseNum(r["Quantity"]),
+        price: parseNum(r["Price"]),
+        amount: parseNum(r["Amount"]),
+        fee: parseNum(r["Transaction fee"]),
+        currency: String(r["Currency"] || "").toUpperCase(),
+        trade_id: r["Trade ID"],
+        market: r["Market code"],
+      });
+    });
+    Object.keys(txByName).forEach(function (k) {
+      txByName[k].sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); });
+    });
+
+    var reportEnd = metaPatch.report_end || null;
+    var securities = [];
+
+    (input.holdings || []).forEach(function (r) {
+      var endShares = parseNum(r["Ending shareholding"]);
+      if (endShares == null || endShares <= 0) return; // current holdings only
+      var name = r["Investment name"];
+      var ticker = String(r["Investment ticker symbol"] || "").trim().toUpperCase();
+      var exchange = marketToExchange(r["Exchange"]);
+      var currency = String(r["Currency"] || "").toUpperCase() || "NZD";
+      var endPrice = parseNum(r["Ending share price"]);
+      var tx = txByName[normName(name)] || [];
+      // fall back to transaction market/currency when the holdings row lacks them
+      if ((!r["Exchange"] || exchange === "FUNDNZ") && tx.length && tx[0].market) exchange = marketToExchange(tx[0].market);
+      if (!currency && tx.length) currency = tx[0].currency;
+
+      // native price path from transaction prices + the ending price
+      var hist = [];
+      tx.forEach(function (t) { if (t.date && t.price != null) hist.push({ date: t.date, close: t.price }); });
+      if (reportEnd && endPrice != null) hist.push({ date: reportEnd, close: endPrice });
+      hist = dedupeByDate(hist);
+
+      var fxRate = rates[currency] != null ? rates[currency] : (currency === base ? 1 : null);
+
+      securities.push({
+        ticker: ticker,
+        exchange: exchange,
+        name: name,
+        currency: currency,
+        asset_type: assetType(name, exchange),
+        watchlist: false,
+        imported: true,
+        source: "sharesies",
+        price: {
+          current: endPrice,
+          prev_close: null,
+          high52w: null,
+          as_of: reportEnd,
+          provider: "Sharesies report",
+          freshness: "LATEST_REPORTED_PERIOD",
+          history: hist,
+        },
+        holding: {
+          quantity: endShares,
+          avg_cost: avgCost(r["Dollar value of shares purchased (including the value of transferred shares)"], r["Number of shares purchased"]),
+          currency: currency,
+          fx_rate: fxRate,
+          dividends: parseNum(r["Dividends and distributions"]),
+        },
+        transactions: tx,
+        sharesies: {
+          ending_value_native: parseNum(r["Ending investment dollar value"]),
+          purchased_value: parseNum(r["Dollar value of shares purchased (including the value of transferred shares)"]),
+          purchased_shares: parseNum(r["Number of shares purchased"]),
+          sold_shares: parseNum(r["Number of shares sold"]),
+          dividends: parseNum(r["Dividends and distributions"]),
+          fees: parseNum(r["Transaction fees"]),
+          tax_nz: parseNum(r["NZ withholding tax (NZD)"]),
+          tax_us: parseNum(r["US withholding tax (USD)"]),
+          tax_au: parseNum(r["AU withholding tax (AUD)"]),
+          tax_foreign: parseNum(r["Foreign withholding tax (USD)"]),
+          imputation: parseNum(r["Imputation credits (NZD)"]),
+          adr_fees: parseNum(r["ADR depositary fees (USD)"]),
+          fif: /true/i.test(String(r["Is FIF"] || "")),
+        },
+      });
+    });
+
+    // fx meta (NZD per unit foreign)
+    var fxMeta = { NZD: 1 };
+    Object.keys(rates).forEach(function (c) { fxMeta[c] = rates[c]; });
+    metaPatch.fx = fxMeta;
+    metaPatch.fx_asof = fx.asOf;
+    metaPatch.base_ccy = base;
+
+    return { securities: securities, metaPatch: metaPatch, warnings: warnings };
+  }
+
+  function dedupeByDate(hist) {
+    var seen = {};
+    var out = [];
+    hist.sort(function (a, b) { return String(a.date).localeCompare(String(b.date)); });
+    hist.forEach(function (p) { seen[p.date] = p.close; });
+    Object.keys(seen).sort().forEach(function (d) { out.push({ date: d, close: seen[d] }); });
+    return out;
+  }
+
+  // Convenience: categorise an array of raw CSV texts by detected type.
+  function categorise(texts) {
+    var out = { holdings: null, transactions: null, summary: null, wallet: null, unknown: [] };
+    (texts || []).forEach(function (t) {
+      var p = parseCsv(t);
+      var type = detectReportType(p.headers);
+      if (type) out[type] = p.objects; else out.unknown.push(p.headers.slice(0, 3).join(","));
+    });
+    return out;
+  }
+
+  return {
+    parseNum: parseNum,
+    normName: normName,
+    parseTradeDate: parseTradeDate,
+    parseCsv: parseCsv,
+    detectReportType: detectReportType,
+    marketToExchange: marketToExchange,
+    assetType: assetType,
+    avgCost: avgCost,
+    impliedFxToNzd: impliedFxToNzd,
+    downsample: downsample,
+    buildImport: buildImport,
+    categorise: categorise,
+  };
+});
+
 </script>
 
 <script>
@@ -941,7 +1260,7 @@ progress{width:100%;height:8px}
 "use strict";
 const {useState,useEffect,useMemo,useRef,useCallback,createContext,useContext,Fragment}=React;
 const html=htm.bind(React.createElement);
-const E=window.Engine, VZ=window.Versioning;
+const E=window.Engine, VZ=window.Versioning, SH=window.Sharesies;
 
 /* ------------------------------------------------------------------ helpers */
 const uid=()=> (Date.now().toString(36)+Math.random().toString(36).slice(2,8));
@@ -1168,8 +1487,47 @@ function AppProvider({children}){
   },[store]);
   const metaRef=useRef({}); useEffect(()=>{metaRef.current=meta;},[meta]);
 
+  // Bulk import (Sharesies): optionally clear demo data, upsert securities by
+  // EXCHANGE:TICKER preserving any existing research, and merge a meta patch.
+  const bulkImport=useCallback(async(built,clearDemo)=>{
+    const current=securitiesRef.current.slice();
+    let kept=current;
+    if(clearDemo){
+      const demo=current.filter(s=>s.example);
+      for(const d of demo){
+        await store.remove("securities",d.id);
+        for(const sn of snapshotsRef.current.filter(x=>x.security_id===d.id)) await store.remove("snapshots",sn.id);
+      }
+      kept=current.filter(s=>!s.example);
+      setSnapshots(l=>l.filter(sn=>!demo.some(d=>d.id===sn.security_id)));
+    }
+    const byKey={}; kept.forEach(s=>{byKey[secKey(s)]=s;});
+    const out=[];
+    for(const inc of built.securities){
+      const key=(inc.exchange||"?")+":"+(inc.ticker||"?");
+      const existing=byKey[key];
+      // preserve research (thesis/latest/snapshots/analysis/role/tier) on an existing security
+      const rec=existing
+        ? {...existing, name:inc.name||existing.name, currency:inc.currency||existing.currency, asset_type:inc.asset_type||existing.asset_type,
+           price:{...(existing.price||{}),...inc.price}, holding:inc.holding, transactions:inc.transactions, sharesies:inc.sharesies,
+           imported:true, source:"sharesies", updated_at:nowIso()}
+        : {...inc, id:uid(), created_at:nowIso(), updated_at:nowIso(), last_band:null, latest:{
+            entry_classification:null, thesis_status:null }};
+      await store.put("securities",rec.id,rec);
+      out.push(rec);
+    }
+    // rebuild securities state: kept (minus upserted keys) + upserted
+    const upsertKeys={}; out.forEach(r=>upsertKeys[secKey(r)]=true);
+    const merged=kept.filter(s=>!upsertKeys[secKey(s)]).concat(out);
+    setSecurities(merged);
+    if(built.metaPatch) await updateMeta(built.metaPatch);
+    return out.length;
+  },[store,updateMeta]);
+  const securitiesRef=useRef([]); useEffect(()=>{securitiesRef.current=securities;},[securities]);
+  const snapshotsRef=useRef([]); useEffect(()=>{snapshotsRef.current=snapshots;},[snapshots]);
+
   const value={backend,securities,snapshots,alerts,events,frameworks,meta,activeFw,booting,notify,hasSample,
-    saveSecurity,deleteSecurity,pushAlert,markAlert,deleteAlert,saveSnapshot,saveEvent,deleteEvent,saveFramework,updateMeta,store};
+    saveSecurity,deleteSecurity,pushAlert,markAlert,deleteAlert,saveSnapshot,saveEvent,deleteEvent,saveFramework,updateMeta,bulkImport,store};
 
   return html`<${Ctx.Provider} value=${value}>
     ${children}
@@ -1294,6 +1652,25 @@ function Donut({data}){ // data:[{label,value,color}]
     <svg viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Allocation">${seg}</svg>
     <div class="stack" style=${{gap:"4px"}}>${data.map((d,i)=>html`<div key=${i} class="row xs"><span style=${{width:"10px",height:"10px",background:d.color,borderRadius:"3px"}}></span><span class="muted">${d.label}</span><b class="mono">${fmtNum(d.value,0)}</b></div>`)}</div>
   </div>`;
+}
+function LineChart({points,ccy}){ // points:[{date,value}]
+  if(!points||points.length<2)return html`<div class="muted small">No value history.</div>`;
+  const H=170,W=620,L=52,R=12,T=14,B=26;
+  const ys=points.map(p=>+p.value); let lo=Math.min.apply(null,ys),hi=Math.max.apply(null,ys);
+  const pad=(hi-lo)*0.08||1; lo=Math.max(0,lo-pad); hi+=pad;
+  const sx=(i)=>L+(i/(points.length-1))*(W-L-R), sy=(v)=>T+(1-(v-lo)/(hi-lo))*(H-T-B);
+  const path=points.map((p,i)=>(i?"L":"M")+sx(i).toFixed(1)+" "+sy(+p.value).toFixed(1)).join(" ");
+  const area=path+` L ${sx(points.length-1)} ${H-B} L ${sx(0)} ${H-B} Z`;
+  const ticks=4,tk=[];for(let i=0;i<=ticks;i++)tk.push(lo+(hi-lo)*i/ticks);
+  return html`<div class="scroll-x"><svg viewBox="0 0 ${W} ${H}" width="100%" style=${{maxWidth:W+"px"}} role="img" aria-label="Portfolio value over time">
+    ${tk.map((v,i)=>html`<g key=${i}><line x1=${L} y1=${sy(v)} x2=${W-R} y2=${sy(v)} stroke="var(--hair)" stroke-width="1"/>
+      <text x=${L-6} y=${sy(v)+3} fill="var(--muted)" font-size="9" text-anchor="end" font-family="var(--mono)">${fmtNum(v,0)}</text></g>`)}
+    <path d=${area} fill="var(--ocean)" opacity="0.10"/>
+    <path d=${path} fill="none" stroke="var(--ocean)" stroke-width="2"/>
+    <circle cx=${sx(points.length-1)} cy=${sy(+points[points.length-1].value)} r="3.2" fill="var(--ocean)"/>
+    <text x=${L} y=${H-8} fill="var(--muted)" font-size="9" font-family="var(--mono)">${points[0].date||''}</text>
+    <text x=${W-R} y=${H-8} fill="var(--muted)" font-size="9" text-anchor="end" font-family="var(--mono)">${points[points.length-1].date||''}</text>
+  </svg></div>`;
 }
 
 /* ============================================================ navigation */
@@ -2014,20 +2391,31 @@ function Watchlists(){
 
 /* ============================================================ Portfolio */
 function Portfolio(){
-  const app=useApp(); const base=app.meta.base_ccy||"NZD";
+  const app=useApp(); const base=app.meta.base_ccy||"NZD"; const fxMap=app.meta.fx||{};
+  const fxOf=(ccy)=> num(fxMap[ccy])!=null?num(fxMap[ccy]):(ccy===base?1:null);
   const holdings=app.securities.filter(s=>s.holding&&num(s.holding.quantity));
-  const rows=holdings.map(s=>{const q=num(s.holding.quantity);const cur=num(s.price&&s.price.current)||num(s.holding.avg_cost)||0;const fx=num(s.holding.fx_rate)||1;const valN=q*cur;const valB=valN*fx;const cost=q*(num(s.holding.avg_cost)||0);const pl=cur&&s.holding.avg_cost?(cur-num(s.holding.avg_cost))/num(s.holding.avg_cost):null;return {s,q,valN,valB,pl,cur};});
+  const rows=holdings.map(s=>{const q=num(s.holding.quantity);const cur=num(s.price&&s.price.current)||num(s.holding.avg_cost)||0;const fx=num(s.holding.fx_rate)||fxOf(s.currency)||1;const valN=q*cur;const valB=valN*fx;const pl=cur&&s.holding.avg_cost?(cur-num(s.holding.avg_cost))/num(s.holding.avg_cost):null;return {s,q,valN,valB,pl,cur};});
   const total=rows.reduce((a,r)=>a+r.valB,0);
+  const cash=app.meta.cash||null;
+  const cashBase=cash?Object.keys(cash).reduce((a,c)=>a+(num(cash[c])||0)*(fxOf(c)||1),0):0;
+  const dividends=holdings.reduce((a,s)=>a+((num(s.holding.dividends)||0)*(fxOf(s.currency)||1)),0);
   const byRole={},byCcy={}; rows.forEach(r=>{byRole[r.s.role||"OTHER"]=(byRole[r.s.role||"OTHER"]||0)+r.valB;byCcy[r.s.currency||"?"]=(byCcy[r.s.currency||"?"]||0)+r.valB;});
   const cols=["var(--ocean)","var(--pounamu-2)","var(--kowhai)","var(--clay)","var(--neutral)","var(--ocean-2)","var(--good)","var(--bad)"];
+  const hist=app.meta.portfolio_history;
   return html`<div class="stack">
-    <div class="pagehead"><div class="between"><div class="t"><h1>Portfolio</h1><span class="muted">Native and ${base} values kept separately</span></div><button class="btn ghost" onClick=${()=>go("/portfolio/import")}>Import CSV</button></div></div>
-    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))"}}>
-      <div class="card pad"><div class="tag">Total value (${base})</div><div style=${{fontFamily:"var(--serif)",fontSize:"1.6rem"}}>${fmtMoney(total,base,0)}</div></div>
+    <div class="pagehead"><div class="between"><div class="t"><h1>Portfolio</h1><span class="muted">Native and ${base} values kept separately</span></div><button class="btn ghost" onClick=${()=>go("/portfolio/import")}>Import from Sharesies</button></div></div>
+    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))"}}>
+      <div class="card pad"><div class="tag">Holdings value (${base})</div><div style=${{fontFamily:"var(--serif)",fontSize:"1.5rem"}}>${fmtMoney(total,base,0)}</div></div>
+      <div class="card pad"><div class="tag">Cash / dry powder (${base})</div><div style=${{fontFamily:"var(--serif)",fontSize:"1.5rem"}}>${fmtMoney(cashBase,base,0)}</div>${cash&&html`<div class="xs muted mono">${Object.keys(cash).filter(c=>num(cash[c])).map(c=>c+" "+fmtNum(cash[c],2)).join(" · ")||"—"}</div>`}</div>
+      <div class="card pad"><div class="tag">Dividends received (${base})</div><div style=${{fontFamily:"var(--serif)",fontSize:"1.5rem"}}>${fmtMoney(dividends,base,0)}</div><div class="xs muted">lifetime, per Sharesies</div></div>
+    </div>
+    ${hist&&hist.length>1&&html`<div class="card pad stack"><div class="between"><h3>Portfolio value over time</h3><span class="tag">${base} · from Sharesies</span></div><${LineChart} points=${hist} ccy=${base}/></div>`}
+    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
       <div class="card pad stack"><div class="tag">By role</div><${Donut} data=${Object.keys(byRole).map((r,i)=>({label:titleCase(r),value:byRole[r],color:cols[i%cols.length]}))}/></div>
       <div class="card pad stack"><div class="tag">By currency</div><${Donut} data=${Object.keys(byCcy).map((r,i)=>({label:r,value:byCcy[r],color:cols[i%cols.length]}))}/></div>
     </div>
-    ${rows.length===0?html`<div class="card pad empty"><h3>No holdings</h3><p class="small">Import a broker CSV or add holdings on a security.</p></div>`:
+    ${(fxMap.USD||fxMap.AUD)&&html`<div class="banner small">FX to ${base}${app.meta.fx_asof?" (latest from your wallet exchanges)":""}: ${Object.keys(fxMap).filter(c=>c!==base).map(c=>c+" "+fmtNum(fxMap[c],4)).join(" · ")}. Edit in Settings.</div>`}
+    ${rows.length===0?html`<div class="card pad empty"><h3>No holdings</h3><p class="small">Import your Sharesies exports or add holdings on a security.</p><button class="btn" onClick=${()=>go("/portfolio/import")}>Import from Sharesies</button></div>`:
       html`<div class="card scroll-x"><table class="tbl"><thead><tr><th>Ticker</th><th>Role</th><th>Qty</th><th>Price</th><th>Value (native)</th><th>Value (${base})</th><th>P/L</th><th>Quality</th></tr></thead><tbody>
       ${rows.sort((a,b)=>b.valB-a.valB).map(r=>html`<tr key=${r.s.id} style=${{cursor:"pointer"}} onClick=${()=>go("/securities/"+r.s.id)}>
         <td><b class="mono">${secKey(r.s)}</b></td><td class="small muted">${titleCase(r.s.role||"—")}</td>
@@ -2040,49 +2428,122 @@ function Portfolio(){
   </div>`;
 }
 
-/* ============================================================ Portfolio import (CSV) */
+/* ============================================================ Portfolio import (Sharesies) */
+const SLOT_LABELS={holdings:"Investment holdings report",transactions:"Transaction report",summary:"Holdings summary report",wallet:"Wallet report"};
+const SLOT_ROLE={holdings:"Current positions, price & average cost",transactions:"Buy/sell history",summary:"Portfolio value over time + cash",wallet:"Currency-exchange FX rates"};
+function readFileText(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(r.error); r.readAsText(file); }); }
+
 function PortfolioImport(){
-  const app=useApp(); const [raw,setRaw]=useState(""); const [parsed,setParsed]=useState(null); const [map,setMap]=useState({}); const [done,setDone]=useState(null);
-  const parse=(text)=>{
-    const lines=text.trim().split(/\r?\n/).filter(Boolean); if(lines.length<2){setParsed(null);return;}
-    const delim=lines[0].includes("\t")?"\t":",";
-    const headers=lines[0].split(delim).map(h=>h.trim());
-    const rows=lines.slice(1).map(l=>l.split(delim).map(c=>c.trim()));
-    setParsed({headers,rows});
-    // auto-map
-    const guess={};const find=(...ks)=>headers.findIndex(h=>ks.some(k=>h.toLowerCase().includes(k)));
-    guess.ticker=find("ticker","symbol","code"); guess.exchange=find("exchange","market"); guess.quantity=find("qty","quantity","units","shares"); guess.avg_cost=find("cost","price","avg"); guess.currency=find("currency","ccy");
-    setMap(guess);
+  const app=useApp(); const base=app.meta.base_ccy||"NZD";
+  const [slots,setSlots]=useState({}); // type -> {name, objects, count}
+  const [unknown,setUnknown]=useState([]);
+  const [clearDemo,setClearDemo]=useState(true);
+  const [result,setResult]=useState(null); const [busy,setBusy]=useState(false); const [generic,setGeneric]=useState(false);
+  const hasDemo=app.securities.some(s=>s.example);
+
+  const ingest=(name,text)=>{
+    const p=SH.parseCsv(text); const type=SH.detectReportType(p.headers);
+    if(!type){ setUnknown(u=>[...u,name||"(pasted)"]); return; }
+    setSlots(s=>({...s,[type]:{name:name||"(pasted)",objects:p.objects,count:p.objects.length}}));
   };
+  const onFiles=async(list)=>{ setResult(null); for(const f of Array.from(list||[])){ try{ ingest(f.name,await readFileText(f)); }catch(e){ setUnknown(u=>[...u,f.name+" (read error)"]); } } };
+
+  const preview=useMemo(()=>{
+    if(!slots.holdings)return null;
+    const cat={holdings:slots.holdings.objects,transactions:(slots.transactions||{}).objects||null,summary:(slots.summary||{}).objects||null,wallet:(slots.wallet||{}).objects||null};
+    try{ return SH.buildImport(cat,{baseCcy:base}); }catch(e){ return {error:(e&&e.message)||"parse error",securities:[]}; }
+  },[slots,base]);
+
+  const previewTotal=useMemo(()=>{
+    if(!preview||!preview.securities)return 0; const fx=(preview.metaPatch&&preview.metaPatch.fx)||{};
+    return preview.securities.reduce((a,s)=>a+((num(s.holding.quantity)||0)*(num(s.price.current)||0)*(num(s.holding.fx_rate)||num(fx[s.currency])||(s.currency===base?1:0))),0);
+  },[preview,base]);
+
   const doImport=async()=>{
-    const {headers,rows}=parsed; let n=0;
-    for(const r of rows){
-      const get=(k)=>map[k]>=0?r[map[k]]:"";
-      const ticker=(get("ticker")||"").toUpperCase(); if(!ticker)continue;
-      const exchange=(get("exchange")||"OTHER").toUpperCase();
-      const existing=app.securities.find(x=>x.ticker===ticker&&(x.exchange===exchange||map.exchange<0));
-      const rec=existing?{...existing}:{ticker,exchange,asset_type:"STOCK",currency:(get("currency")||"USD").toUpperCase(),watchlist:false};
-      rec.holding={quantity:num(get("quantity")),avg_cost:num(get("avg_cost")),currency:rec.currency,fx_rate:rec.currency===(app.meta.base_ccy||"NZD")?1:(num(rec.holding&&rec.holding.fx_rate)||null)};
-      await app.saveSecurity(rec); n++;
-    }
-    setDone(n);
+    if(!preview||!preview.securities.length)return; setBusy(true);
+    const n=await app.bulkImport(preview,clearDemo);
+    setResult({count:n,total:previewTotal}); setBusy(false); app.notify("Imported "+n+" holdings");
   };
-  const FIELDS=[["ticker","Ticker *"],["exchange","Exchange"],["quantity","Quantity"],["avg_cost","Avg cost"],["currency","Currency"]];
+
+  if(generic)return html`<${GenericCsvImport} onBack=${()=>setGeneric(false)}/>`;
+
   return html`<div class="stack">
     <button class="link-btn small row" onClick=${()=>go("/portfolio")}>${icons.back()} Portfolio</button>
-    <div class="pagehead"><div class="t"><h1>Import holdings</h1><span class="muted">Paste a broker CSV — the mapper adapts to your columns</span></div></div>
+    <div class="pagehead"><div class="t"><h1>Import from Sharesies</h1><span class="muted">Drop your four exports — each is detected automatically</span></div></div>
+
     <div class="card pad stack">
-      <${Field} label="Paste CSV (or tab-separated) with a header row">
-        <textarea value=${raw} onInput=${e=>{setRaw(e.target.value);parse(e.target.value);}} style=${{minHeight:"120px",fontFamily:"var(--mono)",fontSize:".8rem"}} placeholder="Ticker,Exchange,Quantity,AvgCost,Currency\nRMD,NYSE,40,205.5,USD"></textarea>
-      </${Field}>
-      <div><button class="btn ghost sm" onClick=${()=>{const ex="Ticker,Exchange,Quantity,AvgCost,Currency\nRMD,NYSE,40,205.5,USD\nXRO,ASX,120,95.2,AUD";setRaw(ex);parse(ex);}}>Use example</button></div>
+      <label class="f" style=${{cursor:"pointer"}}>
+        <div class="banner" style=${{textAlign:"center",borderStyle:"dashed"}}>
+          <b>Choose CSV files</b><div class="xs muted">wallet · transaction · investment holdings · holdings summary — add any or all</div>
+        </div>
+        <input type="file" accept=".csv,text/csv" multiple style=${{display:"none"}} onChange=${e=>onFiles(e.target.files)}/>
+      </label>
+      <details><summary class="small muted" style=${{cursor:"pointer"}}>…or paste one report's CSV text</summary>
+        <${PasteBox} onSubmit=${t=>ingest("(pasted)",t)}/>
+      </details>
     </div>
-    ${parsed&&html`<div class="card pad stack"><h3>Map columns</h3><div class="form-grid">
-      ${FIELDS.map(f=>html`<${Field} key=${f[0]} label=${f[1]}><select value=${map[f[0]]==null?-1:map[f[0]]} onChange=${e=>setMap(m=>({...m,[f[0]]:parseInt(e.target.value)}))}><option value="-1">— none —</option>${parsed.headers.map((h,i)=>html`<option key=${i} value=${i}>${h}</option>`)}</select></${Field}>`)}
+
+    <div class="grid" style=${{gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))"}}>
+      ${["holdings","transactions","summary","wallet"].map(t=>{const sl=slots[t];return html`<div key=${t} class="card pad-sm" style=${{borderColor:sl?"var(--pounamu-2)":"var(--hair)"}}>
+        <div class="between"><b class="small">${SLOT_LABELS[t]}</b>${sl?html`<${Chip} kind="good">Loaded</${Chip}>`:html`<${Chip} kind="unknown">Waiting</${Chip}>`}</div>
+        <div class="xs muted">${SLOT_ROLE[t]}</div>
+        ${sl&&html`<div class="xs mono" style=${{marginTop:"4px"}}>${sl.name} · ${sl.count} rows</div>`}
+        ${t==="holdings"&&!sl&&html`<div class="xs" style=${{color:"var(--kowhai)",marginTop:"4px"}}>Required for positions</div>`}
+      </div>`;})}
     </div>
-    <div class="scroll-x"><table class="tbl"><thead><tr>${parsed.headers.map((h,i)=>html`<th key=${i}>${h}</th>`)}</tr></thead><tbody>${parsed.rows.slice(0,4).map((r,i)=>html`<tr key=${i}>${r.map((c,j)=>html`<td key=${j} class="mono small">${c}</td>`)}</tr>`)}</tbody></table></div>
-    <div class="between"><span class="xs muted">${parsed.rows.length} rows · holdings reconcile with any imported snapshot.</span><button class="btn" disabled=${map.ticker==null||map.ticker<0} onClick=${doImport}>Import ${parsed.rows.length} rows</button></div>
+    ${unknown.length>0&&html`<div class="banner warn small">Not recognised as a Sharesies report: ${unknown.join(", ")}. <button class="link-btn" onClick=${()=>setUnknown([])}>dismiss</button></div>`}
+
+    ${preview&&preview.error&&html`<div class="banner bad small">Could not parse: ${preview.error}</div>`}
+    ${preview&&!preview.error&&html`<div class="card pad stack">
+      <h3>Preview</h3>
+      <div class="wrap-row">
+        <${Chip} kind="solid">${preview.securities.length} current holdings</${Chip}>
+        <${Chip} kind="neutral">≈ ${fmtMoney(previewTotal,base,0)}</${Chip}>
+        ${preview.metaPatch&&preview.metaPatch.fx&&(preview.metaPatch.fx.USD||preview.metaPatch.fx.AUD)&&html`<${Chip} kind="neutral">FX ${Object.keys(preview.metaPatch.fx).filter(c=>c!==base).map(c=>c+" "+fmtNum(preview.metaPatch.fx[c],3)).join(" · ")}</${Chip}>`}
+        ${preview.metaPatch&&preview.metaPatch.portfolio_history&&html`<${Chip} kind="neutral">${preview.metaPatch.portfolio_history.length}-pt value history</${Chip}>`}
+      </div>
+      <div class="scroll-x"><table class="tbl"><thead><tr><th>Ticker</th><th>Name</th><th>Qty</th><th>Price</th><th>Avg cost</th><th>Value (${base})</th></tr></thead><tbody>
+        ${preview.securities.slice().sort((a,b)=>(b.holding.quantity*b.price.current*(b.holding.fx_rate||1))-(a.holding.quantity*a.price.current*(a.holding.fx_rate||1))).map((s,i)=>html`<tr key=${i}>
+          <td><b class="mono">${s.exchange}:${s.ticker}</b></td><td class="small">${s.name}</td>
+          <td class="mono">${fmtNum(s.holding.quantity,2)}</td><td class="mono">${fmtMoney(s.price.current,s.currency,2)}</td>
+          <td class="mono">${s.holding.avg_cost!=null?fmtMoney(s.holding.avg_cost,s.currency,2):"—"}</td>
+          <td class="mono">${fmtMoney((s.holding.quantity||0)*(s.price.current||0)*(s.holding.fx_rate||1),base,0)}</td></tr>`)}
+      </tbody></table></div>
+      ${hasDemo&&html`<label class="row small"><input type="checkbox" checked=${clearDemo} onChange=${e=>setClearDemo(e.target.checked)}/> Clear the demo securities (GOOGL/RMD/XRO examples) before importing</label>`}
+      <div class="between"><span class="xs muted">Only current holdings (Ending shareholding &gt; 0) are imported. Prices show freshness “Latest reported”.</span>
+        <button class="btn" disabled=${busy||!preview.securities.length} onClick=${doImport}>${busy?"Importing…":"Import "+preview.securities.length+" holdings"}</button></div>
     </div>`}
+
+    ${result&&html`<div class="banner"><b>Imported ${result.count} holdings (${fmtMoney(result.total,base,0)}).</b> <button class="link-btn" onClick=${()=>go("/portfolio")}>View portfolio →</button></div>`}
+
+    <div class="xs muted">Different broker? <button class="link-btn" onClick=${()=>setGeneric(true)}>Use the generic CSV mapper</button>.</div>
+  </div>`;
+}
+function PasteBox({onSubmit}){ const [t,setT]=useState("");
+  return html`<div class="stack" style=${{marginTop:"8px"}}>
+    <textarea value=${t} onInput=${e=>setT(e.target.value)} style=${{minHeight:"90px",fontFamily:"var(--mono)",fontSize:".78rem",padding:"8px",border:"1px solid var(--hair-2)",borderRadius:"8px",background:"var(--raise)",color:"var(--ink)"}} placeholder="Paste the full CSV including its header row"></textarea>
+    <div><button class="btn sm ghost" disabled=${!t.trim()} onClick=${()=>{onSubmit(t);setT("");}}>Detect & add</button></div>
+  </div>`;
+}
+/* generic single-CSV mapper (other brokers) */
+function GenericCsvImport({onBack}){
+  const app=useApp(); const [raw,setRaw]=useState(""); const [parsed,setParsed]=useState(null); const [map,setMap]=useState({}); const [done,setDone]=useState(null);
+  const parse=(text)=>{ const p=SH.parseCsv(text); if(!p.headers.length){setParsed(null);return;} setParsed({headers:p.headers,rows:p.rows});
+    const find=(...ks)=>p.headers.findIndex(h=>ks.some(k=>h.toLowerCase().includes(k)));
+    setMap({ticker:find("ticker","symbol","code"),exchange:find("exchange","market"),quantity:find("qty","quantity","units","shares"),avg_cost:find("cost","avg","price"),currency:find("currency","ccy")}); };
+  const doImport=async()=>{ const {rows}=parsed; let n=0; for(const r of rows){ const get=(k)=>map[k]>=0?r[map[k]]:""; const ticker=(get("ticker")||"").toUpperCase(); if(!ticker)continue; const exchange=(get("exchange")||"OTHER").toUpperCase();
+    const existing=app.securities.find(x=>x.ticker===ticker&&(x.exchange===exchange||map.exchange<0)); const ccy=(get("currency")||"USD").toUpperCase();
+    const rec=existing?{...existing}:{ticker,exchange,asset_type:"STOCK",currency:ccy,watchlist:false};
+    rec.holding={quantity:num(get("quantity")),avg_cost:num(get("avg_cost")),currency:ccy,fx_rate:ccy===(app.meta.base_ccy||"NZD")?1:(num(rec.holding&&rec.holding.fx_rate)||null)};
+    await app.saveSecurity(rec); n++; } setDone(n); };
+  const FIELDS=[["ticker","Ticker *"],["exchange","Exchange"],["quantity","Quantity"],["avg_cost","Avg cost"],["currency","Currency"]];
+  return html`<div class="stack">
+    <button class="link-btn small row" onClick=${onBack}>${icons.back()} Sharesies import</button>
+    <div class="pagehead"><div class="t"><h1>Generic CSV import</h1><span class="muted">Map your broker's columns</span></div></div>
+    <div class="card pad stack"><${Field} label="Paste CSV with a header row"><textarea value=${raw} onInput=${e=>{setRaw(e.target.value);parse(e.target.value);}} style=${{minHeight:"110px",fontFamily:"var(--mono)",fontSize:".8rem"}}></textarea></${Field}></div>
+    ${parsed&&html`<div class="card pad stack"><h3>Map columns</h3><div class="form-grid">
+      ${FIELDS.map(f=>html`<${Field} key=${f[0]} label=${f[1]}><select value=${map[f[0]]==null?-1:map[f[0]]} onChange=${e=>setMap(m=>({...m,[f[0]]:parseInt(e.target.value)}))}><option value="-1">— none —</option>${parsed.headers.map((h,i)=>html`<option key=${i} value=${i}>${h}</option>`)}</select></${Field}>`)}</div>
+      <div class="between"><span class="xs muted">${parsed.rows.length} rows</span><button class="btn" disabled=${map.ticker==null||map.ticker<0} onClick=${doImport}>Import ${parsed.rows.length} rows</button></div></div>`}
     ${done!=null&&html`<div class="banner"><b>Imported ${done} holdings.</b> <button class="link-btn" onClick=${()=>go("/portfolio")}>View portfolio →</button></div>`}
   </div>`;
 }
@@ -2220,6 +2681,12 @@ function Settings(){
       <div class="between"><span class="small">Daily-move alert threshold</span><span class="mono">${((app.meta.move_threshold||0.05)*100).toFixed(0)}%</span></div>
       <input type="range" min="1" max="15" value=${(app.meta.move_threshold||0.05)*100} onChange=${e=>app.updateMeta({move_threshold:parseInt(e.target.value)/100})}/>
       <label class="row small"><input type="checkbox" checked=${!!app.meta.redact_positions} onChange=${e=>app.updateMeta({redact_positions:e.target.checked})}/> Redact position sizes when sending context to AI (§33)</label>
+    </div>
+    <div class="card pad stack"><h3>FX rates to ${app.meta.base_ccy||"NZD"}</h3>
+      <div class="xs muted">Native holdings convert to ${app.meta.base_ccy||"NZD"} at these rates (units of base per 1 foreign). Derived from your wallet exchanges on import; edit if needed.</div>
+      ${(()=>{const fx=app.meta.fx||{};const base=app.meta.base_ccy||"NZD";const ccys=Array.from(new Set(["USD","AUD",...Object.keys(fx)])).filter(c=>c!==base);
+        return ccys.map(c=>html`<div key=${c} class="between"><span class="small mono">1 ${c} =</span><input inputmode="decimal" value=${fx[c]!=null?fx[c]:""} placeholder="—" onChange=${e=>{const v=num(e.target.value);app.updateMeta({fx:{...(app.meta.fx||{}),[base]:1,[c]:v}});}} style=${{width:"110px",padding:"6px",textAlign:"right",border:"1px solid var(--hair-2)",borderRadius:"7px",background:"var(--raise)",color:"var(--ink)",fontFamily:"var(--mono)"}}/></div>`);})()}
+      ${app.meta.fx_asof&&html`<div class="xs muted">Wallet-implied as of: ${Object.keys(app.meta.fx_asof).map(c=>c+" "+fmtDate(app.meta.fx_asof[c])).join(" · ")}</div>`}
     </div>
     <div class="card pad stack"><h3>Appearance</h3><div class="wrap-row">${["system","light","dark"].map(t=>html`<button key=${t} class="btn sm ${((app.meta.theme||'system')===t)?'':'ghost'}" onClick=${()=>setTheme(t)}>${titleCase(t)}</button>`)}</div></div>
     <div class="card pad stack"><h3>Data</h3>

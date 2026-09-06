@@ -13,9 +13,10 @@ import { dirname, join } from "node:path";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const engine = readFileSync(join(root, "engine/engine.js"), "utf8");
 const versioning = readFileSync(join(root, "engine/versioning.js"), "utf8");
+const sharesies = readFileSync(join(root, "engine/sharesies.js"), "utf8");
 const template = readFileSync(join(root, "artifact/app.template.html"), "utf8");
 
-const inlined = `// ==== engine/engine.js (inlined verbatim by build-artifact.mjs) ====\n${engine}\n// ==== engine/versioning.js (inlined verbatim) ====\n${versioning}`;
+const inlined = `// ==== engine/engine.js (inlined verbatim by build-artifact.mjs) ====\n${engine}\n// ==== engine/versioning.js (inlined verbatim) ====\n${versioning}\n// ==== engine/sharesies.js (inlined verbatim) ====\n${sharesies}`;
 
 if (!template.includes("/*__ENGINE_INLINE__*/")) {
   console.error("Marker /*__ENGINE_INLINE__*/ not found in template.");

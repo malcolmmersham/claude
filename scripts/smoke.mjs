@@ -1,7 +1,7 @@
 import { chromium } from "playwright-core";
 import { pathToFileURL } from "node:url";
 import { join } from "node:path";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 // Vendor the CDN libs locally so the app actually mounts offline (the sandbox
 // browser can't reach cdnjs). This is a smoke harness only — the shipped app.html
@@ -50,6 +50,35 @@ await page.screenshot({ path: "scripts/smoke-detail.png", fullPage: true });
 // verify persistence: reload and confirm data survives (localStorage stand-in for db)
 await page.goto(url, { waitUntil: "domcontentloaded" }); await page.waitForTimeout(1200);
 checks.persistedAfterReload = (await page.getByText("NYSE:RMD", { exact: true }).count()) > 0;
+
+// ---- Sharesies import end-to-end (uses the real uploaded CSVs if present) ----
+const UP = "/root/.claude/uploads/c68786c1-e757-5f48-9602-cb7fd00d0b49/";
+const files = [
+  UP + "0e9c07a8-wallet_report_20170501_20260524.csv",
+  UP + "ca49cbfe-transactionreport_20170501_20260531.csv",
+  UP + "c0c81cc3-investmentholdingsreport_20170501_20260531.csv",
+  UP + "acefedee-holdingssummaryreport_20170501_20260531.csv",
+].filter(existsSync);
+if (files.length === 4) {
+  const sid = await page.evaluate(() => { try { const a = JSON.parse(localStorage.getItem("ti:securities")||"[]"); return a.length; } catch(e){ return 0; } });
+  await page.goto(url + "#/portfolio/import", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(700);
+  await page.locator('input[type="file"]').setInputFiles(files);
+  await page.waitForTimeout(900);
+  checks.importPreview = (await page.getByText(/current holdings/).count()) > 0;
+  const importBtn = page.getByRole("button", { name: /^Import \d+ holdings/ });
+  if (await importBtn.count()) { await importBtn.first().click(); await page.waitForTimeout(1200); }
+  await page.goto(url + "#/portfolio", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(1000);
+  const ptext = await page.textContent("body");
+  checks.importedGOOGL = ptext.includes("NASDAQ:GOOGL");
+  checks.importedFund = ptext.includes("FUNDNZ:450007");
+  checks.valueChart = ptext.includes("Portfolio value over time");
+  checks.demoCleared = !ptext.includes("NYSE:RMD"); // example RMD removed by clearDemo
+  await page.screenshot({ path: "scripts/smoke-portfolio.png", fullPage: true });
+} else {
+  checks.importSkipped = true;
+}
 
 await browser.close();
 const realErrors = errors.filter(e => !/favicon|ERR_|TUNNEL|net::/.test(e));

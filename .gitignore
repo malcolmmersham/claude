@@ -3,3 +3,7 @@ scripts/.smoke.html
 scripts/smoke-*.png
 *.log
 .DS_Store
+
+# never commit personal broker exports
+*report*.csv
+*wallet_report*.csv

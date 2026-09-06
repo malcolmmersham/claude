@@ -53,6 +53,28 @@ analyses/thesis/framework versions; `as_of` / `observed_at` / `fetched_at` disti
 `classifyChange`, `canonicalAlertHash`/`isDuplicateAlert`, `convertCurrency`/`fxAttribution`,
 `rankCandidates`/`confidenceAdjustedQuality`.
 
+## Sharesies import (`engine/sharesies.js`)
+
+Pure, tested module (inlined into the artifact by the build script). `detectReportType`
+identifies each of the four Sharesies exports by header signature; `buildImport` reconstructs
+the portfolio:
+
+- **Join by name, not ticker** — funds carry different codes across files (Pathfinder is `42033`
+  in the transaction report, `450007` in the holdings report), but names are consistent.
+- **Ending shareholding is authoritative** for current quantity (corporate actions such as the
+  AIR rights issue change the count, so a transaction sum would be wrong).
+- Current holdings only (`Ending shareholding > 0`). Average cost = `Dollar value of shares
+  purchased ÷ Number of shares purchased` (native). FX to NZD is implied from paired wallet
+  exchange rows (latest per currency). Portfolio value history is downsampled from the summary
+  report's `Investments total (NZD)`.
+
+Import writes via `AppProvider.bulkImport(built, clearDemo)`: it optionally clears the seeded
+demo securities, upserts by `EXCHANGE:TICKER` **preserving** any existing thesis/analysis, and
+merges `metaPatch` (`fx`, `cash`, `portfolio_history`, `investments_total_nzd`). Security records
+gain `transactions[]`, a `sharesies{}` block (dividends/fees/tax/FIF), and price provenance
+(`provider:"Sharesies report"`, `freshness:"LATEST_REPORTED_PERIOD"`). Raw personal CSVs are
+never committed; tests use small inline fixtures.
+
 ## Provider interfaces (§15) — for the full backend
 
 The Artifact cannot make outbound market/news calls, so today prices/events are manual/CSV.

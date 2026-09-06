@@ -46,11 +46,26 @@ A claude.ai Artifact meets every one of those constraints at once:
 - **Alerts inbox** — band crossings, >5% daily moves, material events, thesis-gate changes —
   deduplicated, each tagged *quality change / price-only / both* with evidence and a
   `REVIEW / RESEARCH / REASSESS` next step (never an auto-trade).
-- **Compare** (ranking respects hard gates before raw score), **CSV portfolio import**,
-  events timeline, monthly-review questions, NZD base currency with native values preserved.
+- **Compare** (ranking respects hard gates before raw score), **Sharesies import**
+  (see below) plus a generic CSV mapper, events timeline, monthly-review questions,
+  NZD base currency with native values preserved.
 - Optional **AI research** (business summary, structural-vs-cyclical, red-team) that
   interprets evidence and **never** sets the deterministic scores.
 - **JSON backup export** via the `downloads` capability.
+
+### Sharesies import
+Portfolio → **Import from Sharesies** accepts the four Sharesies CSV exports as-is — drop
+them all in and each is detected automatically:
+- **investment holdings report** → current positions (ending shareholding & price), average
+  cost (lifetime purchased $ ÷ shares), dividends, fees, withholding tax, FIF flag.
+- **transaction report** → per-security buy/sell history + a native price path.
+- **holdings summary report** → portfolio value-over-time chart + current cash.
+- **wallet report** → implied FX rates to NZD (editable in Settings).
+
+Only current holdings (ending shareholding > 0) are imported. Instruments are joined across
+files by **name** (Sharesies funds carry different codes per report), and current quantity comes
+from the holdings report (so corporate actions like rights issues are reflected). Parsing lives
+in `engine/sharesies.js` and is unit-tested. A generic column-mapper is available for other brokers.
 
 ### What is manual / deferred (the "full-backend roadmap")
 An Artifact's sandbox blocks outbound calls to finance/news APIs, so:
@@ -71,7 +86,8 @@ that doc.
 ```
 engine/engine.js        Pure deterministic engine (scoring, bands, moves, change, ranking, currency)
 engine/versioning.js    Immutable framework/thesis version helpers (never erase history)
-engine/engine.test.js   Vitest suite — the spec §34 rule list
+engine/sharesies.js     Sharesies CSV parsing + portfolio reconstruction (pure, tested)
+engine/*.test.js        Vitest suites — the spec §34 rule list + Sharesies import
 artifact/app.template.html  The app source (HTML + inline React/htm SPA), with an engine marker
 artifact/app.html       Built artifact (engine inlined) — this is what gets published
 scripts/build-artifact.mjs  Inlines the engine into the template → app.html (no copy/paste drift)
